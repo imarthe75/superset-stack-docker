@@ -23,8 +23,24 @@ SQLALCHEMY_DATABASE_URI = f'postgresql://superset:superset@{POSTGRES_HOST}:{POST
 WTF_CSRF_ENABLED = False 
 SESSION_COOKIE_SAMESITE = None
 ENABLE_PROXY_FIX = True
-TALISMAN_ENABLED = False
+TALISMAN_ENABLED = True
 ALLOW_ADHOC_SUBQUERY = True
+
+# Content Security Policy (CSP)
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        "default-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+        "img-src": ["'self'", "data:", "blob:", "https://*"],
+        "worker-src": ["'self'", "blob:"],
+        "connect-src": ["'self'", "https://api.mapbox.com", "https://events.mapbox.com"],
+    },
+    "force_https": False,
+}
+
+# Rate Limiting (usando Valkey)
+RATELIMIT_STORAGE_URI = f"redis://{VALKEY_HOST}:{VALKEY_PORT}/3"
+RATELIMIT_STRATEGY = "fixed-window"
+RATELIMIT_DEFAULT = "200 per day"
 
 # Roles y Permisos
 PUBLIC_ROLE_LIKE_GAMMA = True
@@ -124,6 +140,7 @@ WEBDRIVER_OPTION_ARGS = [
 # En Docker, el worker accede al webserver por su nombre de servicio
 WEBDRIVER_BASEURL = "http://superset:8088" 
 WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
+
 SCREENSHOT_LOCATE_WAIT = 100
 SCREENSHOT_LOAD_WAIT = 600
 

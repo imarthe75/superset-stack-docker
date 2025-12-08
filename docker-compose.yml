@@ -35,7 +35,7 @@ services:
       - CUBEJS_DB_NAME=superset
       - CUBEJS_DB_USER=superset
       - CUBEJS_DB_PASS=superset
-      - CUBEJS_REDIS_URL=redis://valkey:6379
+      - CUBEJS_CACHE_AND_QUEUE_DRIVER=cubestore
       - CUBEJS_API_SECRET=${SECRET_KEY}
       - CUBEJS_DEV_MODE=true
     volumes:
@@ -103,10 +103,12 @@ services:
       - superset
 
   prefect:
-    image: prefecthq/prefect:2-latest
-    command: prefect server start
+    build: ./docker/prefect
+    command: prefect server start --host 0.0.0.0
     ports:
       - "4200:4200"
+    volumes:
+      - ./prefect_flows:/opt/prefect/flows
     environment:
       - PREFECT_API_URL=http://localhost:4200/api
     healthcheck:
@@ -121,7 +123,7 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
-    command: --config.file=/etc/prometheus/prometheus.yml
+    command: --config.file=/etc/prometheus/prometheus.yml --web.external-url=/prometheus/
 
   grafana:
     image: grafana/grafana
@@ -131,7 +133,7 @@ services:
       - prometheus
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s:%(http_port)s/grafana/
+      - GF_SERVER_ROOT_URL=http://${DOMAIN}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - grafana_data:/var/lib/grafana

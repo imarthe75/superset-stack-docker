@@ -1,166 +1,120 @@
 # 📚 Documentación Completa de Arquitectura e Instalación de Apache Superset (v5.0.x) - Dockerizado
 
-Este documento sirve como la guía definitiva para el despliegue de producción de Apache Superset (versión estable 5.0.x), incluyendo componentes de alto rendimiento, capa semántica (Cube.js) y el marco para la integración de Machine Learning (ML), adaptado para un entorno contenerizado con **Docker y Docker Compose**.
+Este documento sirve como la guía definitiva para el despliegue de producción de Apache Superset (versión estable 5.0.x), incluyendo componentes de alto rendimiento, capa semántica (Cube.js), orquestación con Prefect y un pipeline de prueba para Machine Learning (ML).
 
 ## PARTE 1: Resumen Arquitectónico (Estructura de Producción)
-
-Esta arquitectura avanzada utiliza componentes clave para mejorar la escalabilidad, el rendimiento y la capacidad de integrar modelos de IA/ML, siendo Superset el front-end de visualización.
-
-### 1.1. Visión General de la Arquitectura
 
 La solución se estructura en capas para aislar responsabilidades y maximizar el rendimiento.
 
 | Capa | Componente Clave | Propósito Principal |
 | :--- | :--- | :--- |
-| **Orquestación** | Prefect 2.x (o Airflow) | Gestión de Pipelines de datos (ETL/ELT) y refresco de modelos ML. |
-| **Modelado Semántico** | Cube.js (Opcional) | Definición centralizada de métricas (cubos) y caching de pre-agregados. |
+| **Orquestación** | Prefect 2.x | Gestión de Pipelines de datos (ETL/ELT) y ML Ops. **(Imagen Personalizada con ML libs)** |
+| **Modelado Semántico** | Cube.js (Store) | Definición centralizada de métricas y caching de pre-agregados (Motor Cube Store). |
 | **Visualización/BI** | Apache Superset (v5.0.x) | Exploración de datos, Dashboards y reportes programados. |
-| **Datos / Metadatos** | PostgreSQL (v16/18) | Almacenamiento de datos fuente y base de metadatos de Superset. |
-| **Caché / Broker** | Valkey | Proporciona caché a Superset y es el broker de mensajes para Celery. |
+| **Datos / Metadatos** | PostgreSQL (v16) | Almacenamiento de datos fuente, resultados de ML y metadatos de Superset. |
+| **Caché / Broker** | Valkey | Reemplazo open-source de Redis para caché de Superset y broker de Celery. |
+| **Proxy / Acceso** | Nginx | Puerta de enlace unificada (Puerto 80) para todos los servicios. |
 | **Observabilidad** | Prometheus + Grafana | Monitoreo del estado de todos los servicios críticos. |
 
-### 1.2. Integración Clave: Cube.js y ML
+### 1.1. Integración de ML (Proof of Concept)
 
-**Cube.js (Capa Semántica)**
-*   Actúa como intermediario entre Superset y PostgreSQL.
-*   Asegura la consistencia definiendo métricas y lógica en código (Data Schema).
-*   Su principal beneficio es el Caching de Pre-Agregados, sirviendo consultas recurrentes de Superset a velocidad de caché, reduciendo la carga de PostgreSQL.
+Se ha implementado un flujo de prueba de concepto (`ml_sales_pipeline.py`) que demuestra:
 
-**Integración con IA/ML (Enfoque Robusto)**
-La IA se integra de forma externa a Superset a través del orquestador (Prefect/Airflow):
-1.  El orquestador ejecuta el entrenamiento del modelo ML.
-2.  El resultado del modelo (predicciones, scores, clasificaciones) se guarda como datos en una tabla de PostgreSQL.
-3.  Superset simplemente consulta y visualiza esta tabla de resultados. Esto es más escalable que la integración directa de IA en la interfaz de Superset.
+1. **Extracción**: Prefect verifica datos en PostgreSQL.
+2. **ML**: Prefect entrena un modelo (`scikit-learn`) y genera predicciones de ventas.
+3. **Carga**: Guarda resultados en la tabla `ml_prediccion_ventas`.
+4. **Refresco**: Prefect notifica a Cube.js para refrescar la semántica.
+5. **Visualización**: Cube.js sirve los datos frescos a Superset.
 
 ---
 
 ## PARTE 2: Guía de Instalación Avanzada (Docker)
 
-Esta guía asume que ya tienes instalado **Docker** y **Docker Compose** en tu servidor Ubuntu/Linux.
+### 2.1. Requisitos y Configuración
 
-### 2.1. Estructura del Proyecto y Requisitos
+El proyecto usa Docker Compose. La configuración clave se maneja en `.env`.
 
-El proyecto ya incluye un `docker-compose.yml` preconfigurado con:
-*   **PostgreSQL**: Base de datos de metadatos y warehousing.
-*   **Valkey**: Reemplazo open-source de Redis para caché y broker.
-*   **Superset**: Imagen personalizada con drivers necesarios.
-*   **Celery w/ Beat**: Para tareas asincrónicas (reportes, alertas).
-*   **Nginx, Prometheus, Grafana, Prefect**: Servicios auxiliares.
-
-**Clonar/Preparar el entorno:**
+**Clonar y configurar:**
 
 ```bash
-# Copiar variables de entorno de ejemplo
+# Copiar variables de ejemplo
 cp .env.example .env
 
-# Editar .env con tus credenciales SMTP y SECRET_KEY segura
+# Editar .env:
+# - DOMAIN: Define tu IP pública (ej: 40.233.31.165) para Grafana/Nginx.
+# - SECRETS & SMTP: Configura tus claves y correo.
 nano .env
 ```
 
-### 2.2. Despliegue de Servicios (Valkey, Postgres, etc.)
+### 2.2. Despliegue de Servicios
 
-A diferencia de la instalación manual, Docker gestiona las versiones y dependencias. Al ejecutar el stack, se descargarán las imágenes correctas (Postgres 16+, Valkey, etc.).
+El stack incluye la construcción de imágenes personalizadas para Superset (drivers) y Prefect (ML libs).
 
 ```bash
-# Levantar todo el stack en segundo plano
+# Construir imágenes personalizadas
+docker compose build
+
+# Levantar todo el stack
 docker compose up -d
 ```
 
-Verifica que los servicios estén corriendo:
+### 2.3. Acceso a Servicios (Vía Nginx / Puerto 80)
+
+Gracias al Proxy Inverso, todos los servicios son accesibles por la IP definida en `.env`:
+
+| Servicio | URL |
+| :--- | :--- |
+| **Superset** | `http://TU_IP/` |
+| **Prefect UI** | `http://TU_IP/prefect/` |
+| **Grafana** | `http://TU_IP/grafana/` |
+| **Cube.js API** | `http://TU_IP/cubejs/` |
+| **Prometheus** | `http://TU_IP/prometheus/` |
+
+### 2.4. Inicialización de Superset (Post-Instalación)
+
+Si es la primera vez que levantas el stack:
+
 ```bash
-docker compose ps
-# Todos los estados deberían ser "Up" o "healthy"
-```
+# 1. Crear usuario admin
+docker compose exec superset superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email admin@example.com
 
-### 2.3. Inicialización de Superset
-
-Una vez que los contenedores estén arriba, debemos inicializar la aplicación Superset. Ejecuta estos comandos **dentro** del contenedor:
-
-```bash
-# 1. Crear usuario administrador
-docker compose exec superset superset fab create-admin \
-  --username admin \
-  --firstname Superset \
-  --lastname Admin \
-  --email admin@example.com \
-  --password admin
-
-# 2. Inicializar base de datos (Metadatos)
+# 2. Migrar DB y Permisos
 docker compose exec superset superset db upgrade
-
-# 3. Inicializar roles y permisos
 docker compose exec superset superset init
 ```
 
-### 2.4. Integración de Cube.js (Opcional/Avanzado)
+### 2.5. Ejecución del Pipeline ML (PoC)
 
-Para añadir Cube.js al stack Docker, agrega el siguiente servicio a tu `docker-compose.yml`:
-
-```yaml
-  cube:
-    image: cubejs/cube:latest
-    ports:
-      - "4000:4000"
-    environment:
-      - CUBEJS_DB_TYPE=postgres
-      - CUBEJS_DB_HOST=postgres
-      - CUBEJS_DB_NAME=superset
-      - CUBEJS_DB_USER=superset
-      - CUBEJS_DB_PASS=superset
-      - CUBEJS_API_SECRET=tu_api_secret_seguro_aqui
-    depends_on:
-      - postgres
-      - valkey
-    volumes:
-      - ./cube_schema:/cube/conf/schema
-```
-
-Luego, en Superset, conecta Cube.js como una base de datos usando la URL:
-`cubejs://cube:4000?token=TU_CUBE_API_TOKEN_GENERADO`
-
-### 2.5. Gestión y Logs
-
-Para ver los logs de cualquier servicio (ej. si falla la conexión a base de datos):
+Para probar la integración de Machine Learning:
 
 ```bash
-# Ver logs de Superset
-docker compose logs -f superset
-
-# Ver logs del Worker (Celery)
-docker compose logs -f celery-worker
+# Ejecutar el flujo manualmente dentro del contenedor de Prefect
+docker compose exec prefect python /opt/prefect/flows/ml_sales_pipeline.py
 ```
+
+Esto generará datos en la tabla `ml_prediccion_ventas` y refrescará Cube.js.
+
+### 2.6 Integración de Cube.js en Superset
+
+Para visualizar los datos de Cube.js:
+
+1. En Superset, ir a **Settings > Database Connections**.
+2. Añadir nueva base de datos **Cube**.
+3. SQLAlchemy URI: `cubejs://cube:4000?token=TU_SECRET_KEY` (El token puede ser tu `SECRET_KEY` en modo dev).
 
 ---
 
-## PARTE 3: Pasos para subir a GitHub
+## PARTE 3: Gestión del Proyecto
 
-Para subir este proyecto a tu repositorio de GitHub, sigue estos pasos en tu terminal (en la raíz del proyecto):
-
-**1. Inicializar Git y .gitignore**
-Asegúrate de tener el archivo `.gitignore` (ya creado en este proyecto) para no subir credenciales (`.env`) o carpetas pesadas (`venv/`, `data/`).
+**Comandos Útiles:**
 
 ```bash
-git init
-git add .
-git commit -m "Initial commit: Superset v5 Stack with Docker"
+# Ver logs en tiempo real
+docker compose logs -f [servicio]
+
+# Reiniciar un servicio específico
+docker compose restart [servicio]
+
+# Bajar todo el stack
+docker compose down
 ```
-
-**2. Renombrar rama principal (Standard)**
-```bash
-git branch -M main
-```
-
-**3. Conectar con GitHub**
-Crea un repositorio **vacío** en GitHub (sin README, sin .gitignore). Copia la URL del repositorio (HTTPS o SSH).
-
-```bash
-# Reemplaza URL_DEL_REPO con tu link, ej: https://github.com/usuario/mi-superset.git
-git remote add origin URL_DEL_REPO
-```
-
-**4. Subir código**
-```bash
-git push -u origin main
-```
-
-¡Listo! Tu arquitectura de Superset estará versionada en GitHub.
