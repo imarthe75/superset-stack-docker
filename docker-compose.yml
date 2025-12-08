@@ -25,6 +25,25 @@ services:
       timeout: 5s
       retries: 5
 
+  cube:
+    image: cubejs/cube:latest
+    ports:
+      - "4000:4000"
+    environment:
+      - CUBEJS_DB_TYPE=postgres
+      - CUBEJS_DB_HOST=postgres
+      - CUBEJS_DB_NAME=superset
+      - CUBEJS_DB_USER=superset
+      - CUBEJS_DB_PASS=superset
+      - CUBEJS_REDIS_URL=redis://valkey:6379
+      - CUBEJS_API_SECRET=${SECRET_KEY}
+      - CUBEJS_DEV_MODE=true
+    volumes:
+      - ./cube_schema:/cube/conf/schema
+    depends_on:
+      - postgres
+      - valkey
+
   superset:
     build: ./docker/superset
     image: custom-superset:latest
@@ -66,7 +85,7 @@ services:
 
   celery-worker:
     image: custom-superset:latest
-    command: celery worker --app=superset.tasks.celery_app:app --pool=gevent --concurrency=4 --loglevel=INFO
+    command: celery --app=superset.tasks.celery_app:app worker --pool=gevent --concurrency=4 --loglevel=INFO
     environment:
       - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
       - POSTGRES_HOST=postgres

@@ -6,15 +6,7 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  - job_name: "superset"
-    metrics_path: "/metrics"
-    static_configs:
-      # Scrape Nginx or direct depending on networking.
-      # Since we are inside docker network, we use service names.
-      # Note: Superset metrics typically require StatsD+Exporter or a specific endpoint setup.
-      # Only /health is default standard http.
-      # If using a statsd-exporter sidecar, target that.
-      # For this stack, we assume Superset might expose metrics if configured,
-      # or we scrape the containers via cAdvisor if added.
-      # Defaulting to checking the web port for availability/basic metrics if exposed.
-      - targets: ["superset:8088"]
+  # - job_name: "superset"
+  #   metrics_path: "/metrics"
+  #   static_configs:
+  #     - targets: ["superset:8088"]
