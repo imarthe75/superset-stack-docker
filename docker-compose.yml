@@ -9,6 +9,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init_sales_db.sql:/docker-entrypoint-initdb.d/init_sales_db.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "superset"]
       interval: 10s
@@ -32,12 +33,14 @@ services:
     environment:
       - CUBEJS_DB_TYPE=postgres
       - CUBEJS_DB_HOST=postgres
-      - CUBEJS_DB_NAME=superset
+      - CUBEJS_DB_NAME=sales_data
       - CUBEJS_DB_USER=superset
       - CUBEJS_DB_PASS=superset
       - CUBEJS_CACHE_AND_QUEUE_DRIVER=cubestore
       - CUBEJS_API_SECRET=${SECRET_KEY}
       - CUBEJS_DEV_MODE=true
+      - CUBEJS_SQL_USER=superset
+      - CUBEJS_SQL_PASSWORD=superset
     volumes:
       - ./cube_schema:/cube/conf/schema
     depends_on:
@@ -137,6 +140,20 @@ services:
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./docker/grafana/provisioning:/etc/grafana/provisioning
+      - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    depends_on:
+      - valkey
 
   nginx:
     image: nginx:latest

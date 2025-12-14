@@ -21,7 +21,9 @@ SQLALCHEMY_DATABASE_URI = f'postgresql://superset:superset@{POSTGRES_HOST}:{POST
 
 # Configuración de Seguridad
 WTF_CSRF_ENABLED = False 
-SESSION_COOKIE_SAMESITE = None
+SESSION_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_HTTPONLY = True
 ENABLE_PROXY_FIX = True
 TALISMAN_ENABLED = True
 ALLOW_ADHOC_SUBQUERY = True
@@ -35,12 +37,13 @@ TALISMAN_CONFIG = {
         "connect-src": ["'self'", "https://api.mapbox.com", "https://events.mapbox.com"],
     },
     "force_https": False,
+    "session_cookie_secure": False,
 }
 
 # Rate Limiting (usando Valkey)
 RATELIMIT_STORAGE_URI = f"redis://{VALKEY_HOST}:{VALKEY_PORT}/3"
 RATELIMIT_STRATEGY = "fixed-window"
-RATELIMIT_DEFAULT = "200 per day"
+RATELIMIT_DEFAULT = "100 per second"
 
 # Roles y Permisos
 PUBLIC_ROLE_LIKE_GAMMA = True

@@ -10,3 +10,6 @@ scrape_configs:
   #   metrics_path: "/metrics"
   #   static_configs:
   #     - targets: ["superset:8088"]
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
