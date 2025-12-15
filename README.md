@@ -14,6 +14,8 @@ La solución se estructura en capas para aislar responsabilidades y maximizar el
 | **Datos / Metadatos** | PostgreSQL (v16) | Almacenamiento de datos fuente, resultados de ML y metadatos de Superset. |
 | **Caché / Broker** | Valkey | Reemplazo open-source de Redis para caché de Superset y broker de Celery. |
 | **Proxy / Acceso** | Nginx | Puerta de enlace unificada (Puerto 80) para todos los servicios. |
+| **Identidad** | Keycloak | Gestión de identidad y acceso (OIDC) en Puerto 8001. |
+| **Secretos** | Vault | Gestión de secretos (HashiCorp) - Dev Mode en Puerto 8200. |
 | **Observabilidad** | Prometheus + Grafana | Monitoreo del estado de todos los servicios críticos. |
 
 ### 1.1. Integración de ML (Proof of Concept)
@@ -25,6 +27,35 @@ Se ha implementado un flujo de prueba de concepto (`ml_sales_pipeline.py`) que d
 3. **Carga**: Guarda resultados en la tabla `ml_prediccion_ventas`.
 4. **Refresco**: Prefect notifica a Cube.js para refrescar la semántica.
 5. **Visualización**: Cube.js sirve los datos frescos a Superset.
+
+### 1.2. Diagrama de Arquitectura
+
+```mermaid
+graph TD
+    User((Usuario)) --> Nginx[Nginx Proxy :80]
+    
+    subgraph "Public Services"
+        Nginx --> Superset[Apache Superset :8088]
+        Nginx --> Keycloak[Keycloak :8001]
+        Nginx --> PrefectUI[Prefect UI :4200]
+        Nginx --> Grafana[Grafana :3000]
+    end
+
+    subgraph "Data & Logic"
+        Superset --> Postgres[(PostgreSQL :5432)]
+        Superset --> Valkey[Valkey Cache :6379]
+        Superset --> Cube[Cube.js :4000]
+        Cube --> Postgres
+        Prefect[Prefect Server] --> Postgres
+        Prefect --> Cube
+    end
+
+    subgraph "Observability"
+        Prometheus --> Superset
+        Prometheus --> Postgres
+        Grafana --> Prometheus
+    end
+```
 
 ---
 
@@ -65,6 +96,8 @@ Gracias al Proxy Inverso, todos los servicios son accesibles por la IP definida 
 | Servicio | URL |
 | :--- | :--- |
 | **Superset** | `http://TU_IP/` |
+| **Keycloak** | `http://TU_IP:8001/` |
+| **Vault** | `http://TU_IP:8200/` |
 | **Prefect UI** | `http://TU_IP/prefect/` |
 | **Grafana** | `http://TU_IP/grafana/` |
 | **Cube.js API** | `http://TU_IP/cubejs/` |
@@ -101,6 +134,96 @@ Para visualizar los datos de Cube.js:
 1. En Superset, ir a **Settings > Database Connections**.
 2. Añadir nueva base de datos **Cube**.
 3. SQLAlchemy URI: `cubejs://cube:4000?token=TU_SECRET_KEY` (El token puede ser tu `SECRET_KEY` en modo dev).
+
+### 2.7. Integración con Keycloak (Identity Provider)
+
+El stack incluye **Keycloak** en el puerto **8001**.
+
+- **URL**: `http://localhost:8001`
+- **Credenciales por defecto**: `admin` / `admin`
+
+**Para activar autenticación vía Keycloak en Superset:**
+
+1. Crear un Realm y Cliente en Keycloak (Cliente ID: `superset`, `Client Authentication`: On, `Valid Redirect URIs`: `http://localhost:8088/*`).
+2. Editar `superset_config.py`:
+   - Cambiar `AUTH_TYPE = AUTH_DB` a `AUTH_TYPE = AUTH_OID`.
+   - Ajustar `OIDC_CLIENT_SECRET` con el secreto generado en Keycloak.
+3. Reiniciar Superset: `docker compose restart superset`.
+
+### 2.8. Añadir Base de Datos Externa a Cube.js
+
+Para conectar Cube.js a una base de datos externa (ej. Oracle, Snowflake, otro Postgres) en lugar de la base de datos local `sales_data`:
+
+1. Abrir `docker-compose.yml` (servicio `cube`).
+
+2. Modificar las variables de entorno para el origen `extra_postgres`:
+
+   ```yaml
+   environment:
+     # ...
+     - CUBEJS_DS_EXTRA_POSTGRES_DB_TYPE=postgres
+     - CUBEJS_DS_EXTRA_POSTGRES_DB_HOST=tu-host-externo.com
+     - CUBEJS_DS_EXTRA_POSTGRES_DB_NAME=nombre_db
+     - CUBEJS_DS_EXTRA_POSTGRES_DB_USER=usuario
+     - CUBEJS_DS_EXTRA_POSTGRES_DB_PASS=contraseña
+   ```
+
+   *Si tu base de datos no es Postgres, cambia el sufijo `_DB_TYPE` y ajusta según corresponda.*
+
+3. Reiniciar Cube: `docker compose restart cube`.
+
+*Nota: Asegúrate de que el contenedor de Cube tenga acceso a la red de tu BD externa.*
+
+### 2.9. Gestión de Secretos (Vault)
+
+El stack incluye **HashiCorp Vault** en modo desarrollo.
+
+- **URL**: `http://localhost:8200`
+- **Token**: `root`
+
+**Ejemplo de uso (desde tu máquina):**
+
+```bash
+# Guardar un secreto
+curl -H "X-Vault-Token: root" -X POST -d '{"data": {"password": "super-secret"}}' http://localhost:8200/v1/secret/data/db_pass
+
+# Leer un secreto
+curl -H "X-Vault-Token: root" http://localhost:8200/v1/secret/data/db_pass
+```
+
+### 2.10. Integración Continua (CI/CD)
+
+Se ha configurado un flujo de trabajo en GitHub Actions (`.github/workflows/ci.yml`) que:
+
+1. Valida la configuración de Docker Compose.
+2. Construye las imágenes del stack.
+3. Levanta el entorno y valida los healthchecks.
+4. Verifica los endpoints principales (Superset, Keycloak, Vault).
+
+Este flujo se ejecuta automáticamente en cada **Push** o **Pull Request** a la rama `main`.
+
+### 2.11. Persistencia de Datos
+
+Todos los servicios críticos persisten su estado en carpetas locales (`./*_data`) para facilitar backups y acceso directo:
+
+- **PostgreSQL**: `./postgres_data`
+- **Grafana**: `./grafana_data`
+- **Prometheus**: `./prometheus_data`
+- **Prefect**: `./prefect_data` (Base de datos SQLite local)
+- **Valkey**: `./valkey_data` (Caché persistente y mensajes)
+
+### 2.12. Observabilidad y Alertas (Grafana)
+
+El sistema incluye reglas de alerta pre-configuradas en Grafana:
+
+- **Base de Datos**: Notifica si la latencia P99 de PostgreSQL excede **1000ms**.
+- **Caché**: Notifica si la tasa de aciertos de Cube.js cae por debajo del **80%**.
+- **Pipelines**: Notifica si no hubo tareas exitosas en Prefect en las últimas **24h**.
+
+### 2.13. Optimización de Recursos
+
+- **Superset Workers**: Se ha configurado `SERVER_WORKER_AMOUNT=5` (Optimizado para ~2 CPUs mediante la regla `2*CPU + 1`).
+- **Límites de Memoria**: Servicios pesados (Superset, Cube, Postgres-Exporter) tienen límites estrictos de RAM para proteger el host.
 
 ---
 

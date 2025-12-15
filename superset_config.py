@@ -1,5 +1,6 @@
 
 import os
+from flask_appbuilder.security.manager import AUTH_OID, AUTH_REMOTE_USER, AUTH_DB, AUTH_LDAP, AUTH_OAUTH
 from celery.schedules import crontab
 from flask_caching.backends.rediscache import RedisCache 
 
@@ -60,7 +61,24 @@ LANGUAGES = {
 # Mapbox
 MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
 
-# --- Configuración de Cache (Valkey) ---
+# Mapbox
+MAPBOX_API_KEY = os.environ.get('MAPBOX_API_KEY', '')
+
+# --- Authentication (Database Default / Keycloak Optional) ---
+# Para activar Keycloak, cambiar AUTH_TYPE a AUTH_OID
+AUTH_TYPE = AUTH_DB
+
+# Configuración OIDC para Keycloak (Si se activa AUTH_OID)
+OIDC_CLIENT_SECRETS = '/app/pythonpath/client_secret.json' # o definir params inline
+OIDC_OPENID_REALM = 'superset'
+OIDC_VALID_ISSUERS = 'http://host.docker.internal:8001/realms/superset'
+OIDC_CLIENT_ID = 'superset'
+# Nota: En producción, usar variables de entorno para secretos
+OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET', 'test-secret')
+
+# Registration
+AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION_ROLE = "Public" 
 
 # Backend para resultados de SQL Lab
 RESULTS_BACKEND = RedisCache(

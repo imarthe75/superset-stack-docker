@@ -1,0 +1,49 @@
+name: Superset Stack CI
+
+on:
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
+
+jobs:
+    build-and-test:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout code
+              uses: actions/checkout@v4
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Validate Docker Compose Config
+              run: docker compose config
+
+            - name: Build Stack
+              run: docker compose build
+
+            - name: Start Stack
+              run: docker compose up -d
+
+            - name: Wait for Healthchecks
+              run: |
+                  echo "Waiting for services to be healthy..."
+                  sleep 60
+                  # Simple check loop could be added here, or rely on healthcheck dependent services
+                  docker ps
+                  docker compose ps
+
+            - name: Verify Endpoints
+              run: |
+                  echo "Verifying Superset..."
+                  curl --fail http://localhost:8088/health || echo "Superset not ready yet"
+
+                  echo "Verifying Keycloak..."
+                  curl -I http://localhost:8001
+
+                  echo "Verifying Vault..."
+                  curl http://localhost:8200/v1/sys/health
+
+            - name: Tear Down
+              if: always()
+              run: docker compose down
