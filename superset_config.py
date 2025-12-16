@@ -98,7 +98,7 @@ AUTH_TYPE = AUTH_DB
 PUBLIC_ROLE_LIKE_GAMMA = True
 AUTH_ROLE_PUBLIC = 'Public'
 GUEST_ROLE_NAME = "Gamma"
-AUTH_USER_REGISTRATION = True
+AUTH_USER_REGISTRATION = False
 
 # Keycloak OIDC (Si se activa AUTH_OID)
 OIDC_CLIENT_SECRETS = '/app/pythonpath/client_secret.json'
