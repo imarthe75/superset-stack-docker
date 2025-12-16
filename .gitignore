@@ -38,6 +38,8 @@ ENV/
 superset_home/
 postgres_data/
 grafana_data/
+prefect_data/
+valkey_data/
 celerybeat-schedule
 celerybeat.pid
 geckodriver.log

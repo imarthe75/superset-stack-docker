@@ -74,6 +74,7 @@ services:
       - CUBEJS_DS_EXTRA_POSTGRES_DB_PASS=password
     volumes:
       - ./cube_schema:/cube/conf/schema
+    depends_on:
       - postgres
       - valkey
     deploy:
@@ -104,6 +105,13 @@ services:
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - ROW_LIMIT=${ROW_LIMIT}
+      - SUPERSET_WEBSERVER_PORT=${SUPERSET_WEBSERVER_PORT}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_OPENID_REALM=${OIDC_OPENID_REALM}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
+      - ALERT_REPORTS_WORKER_USERNAME=${ALERT_REPORTS_WORKER_USERNAME}
+      - WEBDRIVER_BASEURL=${WEBDRIVER_BASEURL}
       - SECRET_KEY=${SECRET_KEY}
       - TZ=America/Mexico_City
     volumes:
@@ -141,6 +149,13 @@ services:
       - CELERY_BROKER_URL=redis://valkey:6379/0
       - CELERY_RESULT_BACKEND=redis://valkey:6379/0
       - TZ=America/Mexico_City
+      - ROW_LIMIT=${ROW_LIMIT}
+      - SUPERSET_WEBSERVER_PORT=${SUPERSET_WEBSERVER_PORT}
+      - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
+      - OIDC_OPENID_REALM=${OIDC_OPENID_REALM}
+      - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
+      - ALERT_REPORTS_WORKER_USERNAME=${ALERT_REPORTS_WORKER_USERNAME}
+      - WEBDRIVER_BASEURL=${WEBDRIVER_BASEURL}
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
     depends_on:

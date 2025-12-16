@@ -74,6 +74,7 @@ cp .env.example .env
 # Editar .env:
 # - DOMAIN: Define tu IP pública (ej: 40.233.31.165) para Grafana/Nginx.
 # - SECRETS & SMTP: Configura tus claves y correo.
+# - SUPERSET CONFIG: ROW_LIMIT, PUERTOS, OIDC, REPORTING.
 nano .env
 ```
 
@@ -147,7 +148,7 @@ El stack incluye **Keycloak** en el puerto **8001**.
 1. Crear un Realm y Cliente en Keycloak (Cliente ID: `superset`, `Client Authentication`: On, `Valid Redirect URIs`: `http://localhost:8088/*`).
 2. Editar `superset_config.py`:
    - Cambiar `AUTH_TYPE = AUTH_DB` a `AUTH_TYPE = AUTH_OID`.
-   - Ajustar `OIDC_CLIENT_SECRET` con el secreto generado en Keycloak.
+   - Asegurarse de que las variables `OIDC_*` en `.env` coincidan con tu Keycloak.
 3. Reiniciar Superset: `docker compose restart superset`.
 
 ### 2.8. Añadir Base de Datos Externa a Cube.js

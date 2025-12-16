@@ -1,0 +1,8 @@
+postgres_data/
+grafana_data/
+prefect_data/
+valkey_data/
+superset_home/
+.env
+.git
+.gitignore
