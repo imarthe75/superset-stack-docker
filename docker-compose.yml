@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: postgres:18
     environment:
       POSTGRES_USER: superset
       POSTGRES_PASSWORD: superset
@@ -9,7 +9,7 @@ services:
     ports:
       - "5433:5432"
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ./postgres_data:/var/lib/postgresql
       - ./docker/postgres/init_sales_db.sql:/docker-entrypoint-initdb.d/init_sales_db.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "superset"]
