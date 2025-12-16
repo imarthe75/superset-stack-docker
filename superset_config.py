@@ -165,18 +165,35 @@ CELERY_CONFIG = CeleryConfig
 # 7. SCREENSHOTS & REPORTING (Playwright)
 ################################################################################
 WEBDRIVER_TYPE = "playwright"
+PLAYWRIGHT_BROWSER = "chromium"
+
 WEBDRIVER_OPTION_ARGS = [
     "--no-sandbox",
     "--disable-gpu",
     "--disable-setuid-sandbox",
     "--disable-dev-shm-usage",
     "--window-size=1920,1080",
+    "--single-process",
     "--disable-software-rasterizer",
+    "--disable-background-networking",
+    "--disable-breakpad",
+    "--disable-client-side-phishing-detection",
+    "--disable-component-update",
+    "--disable-default-apps",
+    "--disable-hang-monitor",
+    "--disable-sync",
+    "--metrics-recording-only",
+    "--mute-audio",
+    "--no-first-run",
+    "--safebrowsing-disable-auto-update",
+    "--enable-automation",
+    "--password-store=basic",
 ]
 
-# URLs para el worker
-WEBDRIVER_BASEURL = os.environ.get('WEBDRIVER_BASEURL', 'http://superset:8088') 
-WEBDRIVER_BASEURL_USER_FRIENDLY = "http://localhost:8088"
+# URLs para el worker (Usamos 'superset' que es el nombre del servicio en Docker)
+# NO usar IP fija (10.250.40.161) porque en Docker la red es interna.
+WEBDRIVER_BASEURL = "http://superset:8088"
+WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SCREENSHOT_LOCATE_WAIT = 60
 SCREENSHOT_LOAD_WAIT = 180
@@ -184,6 +201,7 @@ SCREENSHOT_LOAD_WAIT = 180
 # Credenciales para reportes (Usuario sistema)
 ALERT_REPORTS_WORKER_USERNAME = os.environ.get('ALERT_REPORTS_WORKER_USERNAME', 'admin')
 # ALERT_REPORTS_WORKER_PASSWORD = "password" # Definir en env var idealmente
+ENABLE_ALERTS_REPORTS = True
 
 ################################################################################
 # 8. EMAIL (SMTP)
