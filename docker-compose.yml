@@ -48,15 +48,17 @@ services:
       - ./valkey_data:/data
 
   cube:
-    image: cubejs/cube:latest
+    image: cubejs/cube:v0.35
     ports:
       - "4000:4000"
+      - "15432:15432"
     environment:
       - CUBEJS_CACHE_AND_QUEUE_DRIVER=cubestore
       - CUBEJS_API_SECRET=${SECRET_KEY}
       - CUBEJS_DEV_MODE=true
       - CUBEJS_SQL_USER=superset
       - CUBEJS_SQL_PASSWORD=superset
+      - CUBEJS_PG_SQL_PORT=15432
       - TZ=America/Mexico_City
       # Multi-source Configuration
       - CUBEJS_DATASOURCES=default,extra_postgres
@@ -73,7 +75,7 @@ services:
       - CUBEJS_DS_EXTRA_POSTGRES_DB_USER=user
       - CUBEJS_DS_EXTRA_POSTGRES_DB_PASS=password
     volumes:
-      - ./cube_schema:/cube/conf/schema
+      - ./cube_schema:/cube/conf/model
     depends_on:
       - postgres
       - valkey

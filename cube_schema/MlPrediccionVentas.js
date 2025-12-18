@@ -35,11 +35,11 @@ cube(`MlPrediccionVentas`, {
         },
 
         id: {
-            sql: `mes_simulado`, # Usamos mes_simulado como pseudo- id para esta tabla simple
-      type: `number`,
-        primaryKey: true
-    }
-},
+            sql: `mes_simulado`, // Usamos mes_simulado como pseudo-id para esta tabla simple
+            type: `number`,
+            primaryKey: true
+        }
+    },
 
     dataSource: `default`
 });
