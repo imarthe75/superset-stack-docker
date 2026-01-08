@@ -13,16 +13,16 @@ Si el servidor es nuevo, actualiza el sistema e instala las herramientas según 
 ### Ubuntu / Debian
 
 ```bash
-# 1. Actualizar e instalar dependencias iniciales
+# 1. Actualizar e instalar dependencias iniciales y Git
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y ca-certificates curl gnupg
+sudo apt install -y ca-certificates curl gnupg git
 
 # 2. Añadir la llave GPG oficial de Docker
 sudo install -m 0755 -d /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
 sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-# 3. Configurar el repositorio oficial
+# 3. Configurar el repositorio oficial (Compatible con Ubuntu 22.04 y 24.04)
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
@@ -35,6 +35,7 @@ sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin d
 # 5. Verificar e iniciar servicio
 sudo systemctl enable --now docker
 docker --version
+git --version
 ```
 
 ### RHEL / CentOS / Rocky / AlmaLinux
