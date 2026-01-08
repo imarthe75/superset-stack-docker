@@ -85,7 +85,11 @@ services:
           memory: 4G
 
   superset:
-    image: apache/superset:6.0.0
+    build: 
+      context: ./docker/superset
+      args:
+        PYPI_MIRROR: ${PYPI_MIRROR:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    image: custom-superset:latest
     environment:
       - SUPERSET_ENV=production
       - SERVER_WORKER_AMOUNT=5
@@ -138,7 +142,7 @@ services:
           memory: 2G
 
   celery-worker:
-    image: apache/superset:6.0.0
+    image: custom-superset:latest
     command: celery --app=superset.tasks.celery_app:app worker --pool=gevent --concurrency=4 --loglevel=INFO
     environment:
       - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
@@ -168,7 +172,10 @@ services:
       disable: true
 
   prefect:
-    build: ./docker/prefect
+    build:
+      context: ./docker/prefect
+      args:
+        PYPI_MIRROR: ${PYPI_MIRROR:-https://pypi.tuna.tsinghua.edu.cn/simple}
     command: prefect server start --host 0.0.0.0
     ports:
       - "4200:4200"

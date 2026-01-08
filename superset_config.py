@@ -54,10 +54,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'SUPER_SECRETO_CAMBIAR_ESTO_EN_PROD')
 # 3. FEATURE FLAGS
 ################################################################################
 FEATURE_FLAGS = {
-    "ALERT_REPORTS": False,                  # Desactivado (Requiere imagen custom)
-    "ENABLE_SCHEDULED_EMAIL_REPORTS": False, # Desactivado
+    "ALERT_REPORTS": True,                  # Re-activado (Requiere imagen custom)
+    "ENABLE_SCHEDULED_EMAIL_REPORTS": True, # Re-activado
     "EMAIL_NOTIFICATIONS": True,            # Notificaciones por email
-    "ALERT_REPORT_SLACK_V2": False,          # Desactivado
+    "ALERT_REPORT_SLACK_V2": True,          # Re-activado
     # Dashboards & Filtros
     "DASHBOARD_CROSS_FILTERS": True,
     "DASHBOARD_NATIVE_FILTERS": True,
@@ -213,7 +213,7 @@ SCREENSHOT_LOAD_WAIT = 180
 # Credenciales para reportes (Usuario sistema)
 ALERT_REPORTS_WORKER_USERNAME = os.environ.get('ALERT_REPORTS_WORKER_USERNAME', 'admin')
 # ALERT_REPORTS_WORKER_PASSWORD = "password" # Definir en env var idealmente
-ENABLE_ALERTS_REPORTS = False
+ENABLE_ALERTS_REPORTS = True
 
 ################################################################################
 # 8. EMAIL (SMTP)

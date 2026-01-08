@@ -127,16 +127,19 @@ cube(`Pedidos`, {
 
 ## 4. Inicialización
 
-Una vez configurado, inicia el stack.
+Una vez configurado, construye e inicia el stack.
 
-> [!NOTE]
-> Usamos la imagen oficial `apache/superset:6.0.0` para mayor estabilidad. La funcionalidad de **Reportes y Alertas** está desactivada por ahora, ya que requiere una imagen personalizada con Playwright.
+> [!TIP]
+> **Entornos Restringidos**: Si tu red bloquea `pypi.org`, el proyecto está configurado para usar automáticamente el mirror de **Tsinghua**. Puedes cambiarlo en el `.env` ajustando la variable `PYPI_MIRROR`.
 
 ```bash
-# 1. Levantar el stack
+# 1. Construir imágenes personalizadas (Necesario para Reportes y Prefect)
+docker compose build
+
+# 2. Levantar el stack
 docker compose up -d
 
-# 2. Inicializar Superset (Solo la primera vez)
+# 3. Inicializar Superset (Solo la primera vez)
 
 # Migrar la base de datos
 docker compose exec superset superset db upgrade
@@ -170,17 +173,20 @@ Si prefieres explorar el estado de Cube.js directamente desde la terminal del se
 1. **Confirmar Carga de Esquemas**: Busca mensajes tipo `Compiling schema` o `Schema compiled` para asegurar que tus archivos en `cube_schema/` no tienen errores de sintaxis.
 1. **Modo Desarrollo**: Asegúrate de que `CUBEJS_DEV_MODE=true` esté activo en el `docker-compose.yml` para habilitar el Playground y el refresco automático de esquemas al editar archivos.
 
-## 7. Solución de Problemas de Red (Build Error)
+## 7. Solución de Problemas de Red y Entornos Restringidos
 
-Si obtienes errores de tipo `Network is unreachable` o `Failed to establish a new connection` durante el `docker compose build`:
+### Error: `Network is unreachable` o Bloqueo Corporate (PyPI)
 
-1. **Configurar DNS y MTU**: Crea o edita el archivo `/etc/docker/daemon.json`:
+Si obtienes errores de conexión durante un intento de `build` o si tu empresa bloquea **pypi.org**:
+
+1. **Usa la Imagen Oficial**: Asegúrate de que el `docker-compose.yml` use `image: apache/superset:6.0.0` y no tenga una sección `build`. Esta es la configuración por defecto que hemos establecido.
+2. **Configurar DNS y MTU**: Si incluso la descarga de imágenes de Docker Hub falla, edita `/etc/docker/daemon.json`:
 
    ```bash
    sudo nano /etc/docker/daemon.json
    ```
 
-2. **Agregar Configuración**: Pega el siguiente contenido (ajusta el MTU si es necesario, ej: 1460 para GCP o 1500 estándar):
+3. **Agregar Configuración**: Pega el siguiente contenido (ajusta el MTU si es necesario, ej: 1460 para GCP o 1500 estándar):
 
    ```json
    {
@@ -189,10 +195,10 @@ Si obtienes errores de tipo `Network is unreachable` o `Failed to establish a ne
    }
    ```
 
-3. **Reiniciar Docker**:
+4. **Reiniciar Docker**:
 
    ```bash
    sudo systemctl restart docker
    ```
 
-4. **Reintentar**: Ejecuta `docker compose build` nuevamente.
+5. **Reintentar**: Ejecuta `docker compose build` nuevamente.
