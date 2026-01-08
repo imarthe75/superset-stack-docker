@@ -153,3 +153,16 @@ Si has conectado fuentes externas y quieres explorarlas sin escribir código man
 2. **Introspección**: En la pestaña **"Data Model"**, selecciona la base de datos (ej: `ventas_pro`) para ver todas sus tablas y columnas.
 3. **Generación de Código**: Selecciona las tablas que necesites y usa el botón **"Generate Schema"**. Esto creará los archivos `.yml` o `.js` automáticamente en la carpeta `cube_schema/`.
 4. **Validación**: Usa la pestaña **"Build"** para ejecutar consultas rápidas y verificar que los datos fluyen correctamente desde la fuente externa.
+
+## 6. Monitoreo y Depuración (Entorno)
+
+Si prefieres explorar el estado de Cube.js directamente desde la terminal del servidor:
+
+1. **Verificar Conexión y Errores**: Visualiza los logs en tiempo real para confirmar que las fuentes de datos se conectan correctamente:
+
+   ```bash
+   docker compose logs -f cube
+   ```
+
+2. **Confirmar Carga de Esquemas**: Busca mensajes tipo `Compiling schema` o `Schema compiled` para asegurar que tus archivos en `cube_schema/` no tienen errores de sintaxis.
+3. **Modo Desarrollo**: Asegúrate de que `CUBEJS_DEV_MODE=true` esté activo en el `docker-compose.yml` para habilitar el Playground y el refresco automático de esquemas al editar archivos.
