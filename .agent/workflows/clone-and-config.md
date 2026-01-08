@@ -4,7 +4,61 @@ description: Guía para clonar el proyecto y configurar múltiples bases de dato
 
 # Clonación y Configuración Multi-DB
 
-Este workflow detalla los pasos para replicar el entorno en un nuevo servidor y conectar Cube.js a múltiples orígenes de datos.
+Este workflow detalla los pasos para replicar el entorno en un nuevo servidor Ubuntu y conectar Cube.js a múltiples orígenes de datos.
+
+## 0. Preparación del Sistema
+
+Si el servidor es nuevo, actualiza el sistema e instala las herramientas según tu distribución:
+
+### Ubuntu / Debian
+
+```bash
+# 1. Actualizar e instalar dependencias iniciales
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y ca-certificates curl gnupg
+
+# 2. Añadir la llave GPG oficial de Docker
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# 3. Configurar el repositorio oficial
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# 4. Instalar Docker y sus plugins
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# 5. Verificar e iniciar servicio
+sudo systemctl enable --now docker
+docker --version
+```
+
+### RHEL / CentOS / Rocky / AlmaLinux
+
+```bash
+# Actualizar e instalar Git
+sudo dnf update -y
+sudo dnf install -y curl git-all
+
+# Configurar repositorio de Docker
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# Instalar Docker
+sudo dnf install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# Iniciar y habilitar Docker (Crucial en RHEL)
+sudo systemctl enable --now docker
+
+# Verificar instalaciones
+docker --version
+git --version
+```
+
+*Nota: Para correr docker sin sudo, ejecuta `sudo usermod -aG docker $USER` y reinicia tu sesión.*
 
 ## 1. Clonación del Proyecto
 
