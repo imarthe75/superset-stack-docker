@@ -133,8 +133,10 @@ Esto generará datos en la tabla `ml_prediccion_ventas` y refrescará Cube.js.
 Para visualizar los datos de Cube.js:
 
 1. En Superset, ir a **Settings > Database Connections**.
-2. Añadir nueva base de datos **Cube**.
-3. SQLAlchemy URI: `cubejs://cube:4000?token=TU_SECRET_KEY` (El token puede ser tu `SECRET_KEY` en modo dev).
+2. Añadir nueva base de datos **PostgreSQL**.
+3. **Display Name**: Cube.js (SQL API)
+4. **SQLAlchemy URI**: `postgresql://superset:superset@cube:15432/sales_data`
+   *(Nota: Usamos el protocolo PostgreSQL de Cube.js en el puerto 15432 para máxima compatibilidad).*
 
 ### 2.7. Integración con Keycloak (Identity Provider)
 

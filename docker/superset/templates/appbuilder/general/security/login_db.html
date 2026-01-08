@@ -1,0 +1,60 @@
+{% extends "appbuilder/baselayout.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-4 col-md-offset-4 col-sm-6 col-sm-offset-3">
+            <div class="well">
+                <h2 class="text-center">{{_('Sign In')}}</h2>
+
+                <!-- DB Login Form -->
+                <form action="" method="post" name="login">
+                    {{form.hidden_tag()}}
+                    <div class="control-group">
+                        <label class="control-label" for="username">{{_('Username')}}</label>
+                        <div class="controls">
+                            {{form.username(class="form-control", autofocus=True)}}
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <label class="control-label" for="password">{{_('Password')}}</label>
+                        <div class="controls">
+                            {{form.password(class="form-control")}}
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div class="controls">
+                            <br>
+                            <input class="btn btn-primary btn-block" type="submit" value="{{_('Sign In')}}">
+                        </div>
+                    </div>
+                </form>
+
+                {% if providers %}
+                <hr>
+                <div class="text-center">OR</div>
+                <hr>
+                <div class="text-center">
+                    {% for provider in providers %}
+                    <a href="{{appbuilder.get_url_for_login_with(provider.name)}}" class="btn btn-primary btn-block">
+                        Sign in with {{provider.name|capitalize}}
+                        <i class="fa {{provider.icon}}"></i>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if appbuilder.sm.auth_user_registration %}
+                <br>
+                <div class="text-center">
+                    <a href="{{appbuilder.sm.get_url_for_registeruser}}" class="btn btn-block btn-info">
+                        {{_('Register')}}
+                    </a>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

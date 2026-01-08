@@ -3,7 +3,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 from celery.schedules import crontab
 from flask_caching.backends.rediscache import RedisCache
-from flask_appbuilder.security.manager import AUTH_OID, AUTH_DB
+from flask_appbuilder.security.manager import AUTH_OAUTH, AUTH_DB
 
 ################################################################################
 # 1. LOGGING & MONITORING
@@ -91,8 +91,11 @@ CORS_OPTIONS = {
   'origins':['*'] 
 }
 
-# Autenticación (DB por defecto, OIDC preparado)
-AUTH_TYPE = AUTH_DB
+# Autenticación (Mixed Mode: DB + OAuth)
+AUTH_TYPE = AUTH_DB # Usamos DB para mostrar el formulario, el SM habilitará OAuth
+
+# from custom_security_manager import CustomSecurityManager
+# CUSTOM_SECURITY_MANAGER = CustomSecurityManager
 
 # Roles
 PUBLIC_ROLE_LIKE_GAMMA = True
@@ -100,12 +103,29 @@ AUTH_ROLE_PUBLIC = 'Public'
 GUEST_ROLE_NAME = "Gamma"
 AUTH_USER_REGISTRATION = False
 
-# Keycloak OIDC (Si se activa AUTH_OID)
-OIDC_CLIENT_SECRETS = '/app/pythonpath/client_secret.json'
-OIDC_OPENID_REALM = os.environ.get('OIDC_OPENID_REALM', 'superset')
-OIDC_VALID_ISSUERS = os.environ.get('OIDC_ISSUER_URL', 'http://host.docker.internal:8001/realms/superset')
+# Keycloak OIDC (Configuración para AUTH_OAUTH)
 OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'superset')
-OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET', 'test-secret')
+OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET', 'test-secret') # Cambiar por el secret del cliente en Keycloak
+OIDC_ISSUER_URL = os.environ.get('OIDC_ISSUER_URL', 'http://localhost/auth/realms/superset')
+
+OAUTH_PROVIDERS = [
+    {
+        'name': 'keycloak',
+        'icon': 'fa-google', # O el icono que prefieras
+        'token_key': 'access_token',
+        'remote_app': {
+            'client_id': OIDC_CLIENT_ID,
+            'client_secret': OIDC_CLIENT_SECRET,
+            'server_metadata_url': f'{OIDC_ISSUER_URL}/.well-known/openid-configuration'
+        }
+    }
+]
+
+# Map Keycloak roles to Superset roles
+# AUTH_ROLE_ADMIN = 'Admin'
+# AUTH_ROLE_PUBLIC = 'Public'
+# AUTH_USER_REGISTRATION = True
+# AUTH_USER_REGISTRATION_ROLE = "Gamma"
 
 ################################################################################
 # 5. CACHÉ & VALKEY (REDIS)

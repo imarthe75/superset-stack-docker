@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:18
+    image: postgres:18.1
     environment:
       POSTGRES_USER: superset
       POSTGRES_PASSWORD: superset
@@ -33,7 +33,7 @@ services:
         limits:
           memory: 256M
   valkey:
-    image: valkey/valkey:latest
+    image: valkey/valkey:8.0
     environment:
       - TZ=America/Mexico_City
     ports:
@@ -48,7 +48,7 @@ services:
       - ./valkey_data:/data
 
   cube:
-    image: cubejs/cube:v0.35
+    image: cubejs/cube:v0.36.0
     ports:
       - "4000:4000"
       - "15432:15432"
@@ -118,6 +118,7 @@ services:
       - TZ=America/Mexico_City
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
+      - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
       - superset_home:/app/superset_home
     ports:
       - "8088:8088"
@@ -134,7 +135,8 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          cpus: '2'
+          memory: 2G
 
   celery-worker:
     image: custom-superset:latest
@@ -160,6 +162,7 @@ services:
       - WEBDRIVER_BASEURL=${WEBDRIVER_BASEURL}
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
+      - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
     depends_on:
       - superset
     healthcheck:
@@ -176,7 +179,7 @@ services:
 
 
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:v3.0.0
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus_data:/prometheus
@@ -187,7 +190,7 @@ services:
       - TZ=America/Mexico_City
 
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:12.3.1
     ports:
       - "3000:3000"
     depends_on:
@@ -203,7 +206,7 @@ services:
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:latest
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
     ports:
       - "8080:8080"
     environment:
@@ -217,18 +220,20 @@ services:
       - valkey
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0.0
+    image: quay.io/keycloak/keycloak:26.5.0
     ports:
       - "8001:8080"
     environment:
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
-      - KC_HOSTNAME=localhost
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+      - KC_HTTP_RELATIVE_PATH=/auth
       - TZ=America/Mexico_City
     command: start-dev
 
   nginx:
-    image: nginx:latest
+    image: nginx:1.27
     ports:
       - "80:80"
     environment:
