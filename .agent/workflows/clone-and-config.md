@@ -72,12 +72,12 @@ cd superset-project
 
 ## 2. Configuración de Variables de Entorno
 
-Copia el archivo de ejemplo y genera una clave de seguridad:
+Copia el archivo de ejemplo y genera una clave de seguridad automáticamente:
 
 ```bash
 cp .env.example .env
-# Generar una clave secreta para SECRET_KEY en .env
-openssl rand -base64 42
+# Generar e insertar una clave secreta para SECRET_KEY en el .env
+sed -i "s|SECRET_KEY=.*|SECRET_KEY=$(openssl rand -base64 42)|" .env
 ```
 
 Edita el archivo `.env` con las credenciales correspondientes a tu nuevo entorno (SMTP, Postgres, etc.).
@@ -127,14 +127,29 @@ cube(`Pedidos`, {
 
 ## 4. Inicialización
 
-Una vez configurado, levanta el stack:
+Una vez configurado, construye e inicia el stack:
 
 ```bash
+# 1. Construir imágenes personalizadas
+docker compose build
+
+# 2. Levantar el stack
 docker compose up -d
+
+# 3. Inicializar Superset (Solo la primera vez)
+# Migrar la base de datos
+docker compose exec superset superset db upgrade
+# Crear usuario admin
+docker compose exec superset superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email admin@example.com
+# Inicializar roles y permisos
+docker compose exec superset superset init
 ```
 
-Si es la primera vez, asegúrate de inicializar Superset:
+## 5. Exploración y Modelado (Playground)
 
-```bash
-docker compose exec superset superset-init
-```
+Si has conectado fuentes externas y quieres explorarlas sin escribir código manualmente:
+
+1. **Accede al Playground**: Ve a `http://localhost:4000` en tu navegador.
+2. **Introspección**: En la pestaña **"Data Model"**, selecciona la base de datos (ej: `ventas_pro`) para ver todas sus tablas y columnas.
+3. **Generación de Código**: Selecciona las tablas que necesites y usa el botón **"Generate Schema"**. Esto creará los archivos `.yml` o `.js` automáticamente en la carpeta `cube_schema/`.
+4. **Validación**: Usa la pestaña **"Build"** para ejecutar consultas rápidas y verificar que los datos fluyen correctamente desde la fuente externa.
