@@ -127,35 +127,25 @@ cube(`Pedidos`, {
 
 ## 4. Inicialización
 
-Una vez configurado, construye e inicia el stack.
+Una vez configurado, inicia el stack.
 
-> [!IMPORTANT]
-> El paso de construcción es **obligatorio** para habilitar la funcionalidad de **Reportes y Alertas** (instala Playwright y Chromium).
-> Si este paso falla con errores de red, ve directamente a la **Sección 7: Solución de Problemas de Red**.
+> [!NOTE]
+> Usamos la imagen oficial `apache/superset:6.0.0` para mayor estabilidad. La funcionalidad de **Reportes y Alertas** está desactivada por ahora, ya que requiere una imagen personalizada con Playwright.
 
 ```bash
-# 1. Construir imágenes personalizadas (Obligatorio para Reportes)
-docker compose build
-```
-
-# 2. Levantar el stack
-
+# 1. Levantar el stack
 docker compose up -d
 
-# 3. Inicializar Superset (Solo la primera vez)
+# 2. Inicializar Superset (Solo la primera vez)
 
 # Migrar la base de datos
-
 docker compose exec superset superset db upgrade
 
 # Crear usuario admin
-
-docker compose exec superset superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email <admin@example.com>
+docker compose exec superset superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email admin@example.com
 
 # Inicializar roles y permisos
-
 docker compose exec superset superset init
-
 ```
 
 ## 5. Exploración y Modelado (Playground)
@@ -178,7 +168,7 @@ Si prefieres explorar el estado de Cube.js directamente desde la terminal del se
    ```
 
 1. **Confirmar Carga de Esquemas**: Busca mensajes tipo `Compiling schema` o `Schema compiled` para asegurar que tus archivos en `cube_schema/` no tienen errores de sintaxis.
-2. **Modo Desarrollo**: Asegúrate de que `CUBEJS_DEV_MODE=true` esté activo en el `docker-compose.yml` para habilitar el Playground y el refresco automático de esquemas al editar archivos.
+1. **Modo Desarrollo**: Asegúrate de que `CUBEJS_DEV_MODE=true` esté activo en el `docker-compose.yml` para habilitar el Playground y el refresco automático de esquemas al editar archivos.
 
 ## 7. Solución de Problemas de Red (Build Error)
 

@@ -85,8 +85,7 @@ services:
           memory: 4G
 
   superset:
-    build: ./docker/superset
-    image: custom-superset:latest
+    image: apache/superset:6.0.0
     environment:
       - SUPERSET_ENV=production
       - SERVER_WORKER_AMOUNT=5
@@ -139,7 +138,7 @@ services:
           memory: 2G
 
   celery-worker:
-    image: custom-superset:latest
+    image: apache/superset:6.0.0
     command: celery --app=superset.tasks.celery_app:app worker --pool=gevent --concurrency=4 --loglevel=INFO
     environment:
       - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
