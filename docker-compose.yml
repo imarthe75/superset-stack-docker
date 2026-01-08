@@ -185,7 +185,8 @@ services:
 
 
   prometheus:
-    image: prom/prometheus:v3.0.0
+    image: prom/prometheus:v2.55.1
+    user: root
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus_data:/prometheus
