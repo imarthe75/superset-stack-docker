@@ -127,22 +127,35 @@ cube(`Pedidos`, {
 
 ## 4. Inicialización
 
-Una vez configurado, construye e inicia el stack:
+Una vez configurado, construye e inicia el stack.
+
+> [!IMPORTANT]
+> El paso de construcción es **obligatorio** para habilitar la funcionalidad de **Reportes y Alertas** (instala Playwright y Chromium).
+> Si este paso falla con errores de red, ve directamente a la **Sección 7: Solución de Problemas de Red**.
 
 ```bash
-# 1. Construir imágenes personalizadas
+# 1. Construir imágenes personalizadas (Obligatorio para Reportes)
 docker compose build
+```
 
 # 2. Levantar el stack
+
 docker compose up -d
 
 # 3. Inicializar Superset (Solo la primera vez)
+
 # Migrar la base de datos
+
 docker compose exec superset superset db upgrade
+
 # Crear usuario admin
-docker compose exec superset superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email admin@example.com
+
+docker compose exec superset superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email <admin@example.com>
+
 # Inicializar roles y permisos
+
 docker compose exec superset superset init
+
 ```
 
 ## 5. Exploración y Modelado (Playground)
@@ -164,5 +177,32 @@ Si prefieres explorar el estado de Cube.js directamente desde la terminal del se
    docker compose logs -f cube
    ```
 
-2. **Confirmar Carga de Esquemas**: Busca mensajes tipo `Compiling schema` o `Schema compiled` para asegurar que tus archivos en `cube_schema/` no tienen errores de sintaxis.
-3. **Modo Desarrollo**: Asegúrate de que `CUBEJS_DEV_MODE=true` esté activo en el `docker-compose.yml` para habilitar el Playground y el refresco automático de esquemas al editar archivos.
+1. **Confirmar Carga de Esquemas**: Busca mensajes tipo `Compiling schema` o `Schema compiled` para asegurar que tus archivos en `cube_schema/` no tienen errores de sintaxis.
+2. **Modo Desarrollo**: Asegúrate de que `CUBEJS_DEV_MODE=true` esté activo en el `docker-compose.yml` para habilitar el Playground y el refresco automático de esquemas al editar archivos.
+
+## 7. Solución de Problemas de Red (Build Error)
+
+Si obtienes errores de tipo `Network is unreachable` o `Failed to establish a new connection` durante el `docker compose build`:
+
+1. **Configurar DNS y MTU**: Crea o edita el archivo `/etc/docker/daemon.json`:
+
+   ```bash
+   sudo nano /etc/docker/daemon.json
+   ```
+
+2. **Agregar Configuración**: Pega el siguiente contenido (ajusta el MTU si es necesario, ej: 1460 para GCP o 1500 estándar):
+
+   ```json
+   {
+     "dns": ["8.8.8.8", "8.8.4.4"],
+     "mtu": 1460
+   }
+   ```
+
+3. **Reiniciar Docker**:
+
+   ```bash
+   sudo systemctl restart docker
+   ```
+
+4. **Reintentar**: Ejecuta `docker compose build` nuevamente.

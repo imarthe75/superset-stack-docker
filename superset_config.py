@@ -91,41 +91,33 @@ CORS_OPTIONS = {
   'origins':['*'] 
 }
 
-# Autenticación (Mixed Mode: DB + OAuth)
-AUTH_TYPE = AUTH_DB # Usamos DB para mostrar el formulario, el SM habilitará OAuth
+# Autenticación (Modo base: DB)
+AUTH_TYPE = AUTH_DB
 
+# Para habilitar OAuth (Keycloak) en el futuro:
+# 1. Descomentar las líneas de abajo
+# 2. Asegurarse de que custom_security_manager.py esté configurado
 # from custom_security_manager import CustomSecurityManager
 # CUSTOM_SECURITY_MANAGER = CustomSecurityManager
 
-# Roles
-PUBLIC_ROLE_LIKE_GAMMA = True
-AUTH_ROLE_PUBLIC = 'Public'
-GUEST_ROLE_NAME = "Gamma"
-AUTH_USER_REGISTRATION = False
-
 # Keycloak OIDC (Configuración para AUTH_OAUTH)
-OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'superset')
-OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET', 'test-secret') # Cambiar por el secret del cliente en Keycloak
-OIDC_ISSUER_URL = os.environ.get('OIDC_ISSUER_URL', 'http://localhost/auth/realms/superset')
+# OIDC_CLIENT_ID = os.environ.get('OIDC_CLIENT_ID', 'superset')
+# OIDC_CLIENT_SECRET = os.environ.get('OIDC_CLIENT_SECRET', 'test-secret')
+# OIDC_ISSUER_URL = os.environ.get('OIDC_ISSUER_URL', 'http://localhost/auth/realms/superset')
 
-OAUTH_PROVIDERS = [
-    {
-        'name': 'keycloak',
-        'icon': 'fa-google', # O el icono que prefieras
-        'token_key': 'access_token',
-        'remote_app': {
-            'client_id': OIDC_CLIENT_ID,
-            'client_secret': OIDC_CLIENT_SECRET,
-            'server_metadata_url': f'{OIDC_ISSUER_URL}/.well-known/openid-configuration'
-        }
-    }
-]
+# OAUTH_PROVIDERS = [
+#     {
+#         'name': 'keycloak',
+#         'icon': 'fa-google',
+#         'token_key': 'access_token',
+#         'remote_app': {
+#             'client_id': OIDC_CLIENT_ID,
+#             'client_secret': OIDC_CLIENT_SECRET,
+#             'server_metadata_url': f'{OIDC_ISSUER_URL}/.well-known/openid-configuration'
+#         }
+#     }
+# ]
 
-# Map Keycloak roles to Superset roles
-# AUTH_ROLE_ADMIN = 'Admin'
-# AUTH_ROLE_PUBLIC = 'Public'
-# AUTH_USER_REGISTRATION = True
-# AUTH_USER_REGISTRATION_ROLE = "Gamma"
 
 ################################################################################
 # 5. CACHÉ & VALKEY (REDIS)
@@ -244,3 +236,13 @@ LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'}, 
     "es": {"flag": "es", "name": "Español"}
 }
+
+################################################################################
+# 10. BRANDING & UI CUSTOMIZATION
+################################################################################
+APP_NAME = "Superset Stack"
+# Para usar un logo local, colócalo en /app/superset_home/static/ y usa '/static/tu_logo.png'
+# O puedes usar una URL externa directa
+APP_ICON = "/static/assets/images/superset-logo-horiz.png" 
+APP_ICON_WIDTH = 150
+FAVICON = "/static/assets/images/favicon.png"
