@@ -1,6 +1,6 @@
-# 📚 Documentación Completa de Arquitectura e Instalación de Apache Superset (v5.0.x) - Dockerizado
+# 📚 Documentación Completa de Arquitectura e Instalación de Apache Superset (v6.0.0) - Dockerizado
 
-Este documento sirve como la guía definitiva para el despliegue de producción de Apache Superset (versión estable 5.0.x), incluyendo componentes de alto rendimiento, capa semántica (Cube.js), orquestación con Prefect y un pipeline de prueba para Machine Learning (ML).
+Este documento sirve como la guía definitiva para el despliegue de producción de Apache Superset (versión estable v6.0.0), incluyendo componentes de alto rendimiento, capa semántica (Cube.js), orquestación con Prefect (v3.x) y un pipeline de prueba para Machine Learning (ML).
 
 ## PARTE 1: Resumen Arquitectónico (Estructura de Producción)
 
@@ -8,15 +8,15 @@ La solución se estructura en capas para aislar responsabilidades y maximizar el
 
 | Capa | Componente Clave | Propósito Principal |
 | :--- | :--- | :--- |
-| **Orquestación** | Prefect 2.x | Gestión de Pipelines de datos (ETL/ELT) y ML Ops. **(Imagen Personalizada con ML libs)** |
-| **Modelado Semántico** | Cube.js (Store) | Definición centralizada de métricas y caching de pre-agregados (Motor Cube Store). |
-| **Visualización/BI** | Apache Superset (v5.0.x) | Exploración de datos, Dashboards y reportes programados. |
-| **Datos / Metadatos** | PostgreSQL (v16) | Almacenamiento de datos fuente, resultados de ML y metadatos de Superset. |
-| **Caché / Broker** | Valkey | Reemplazo open-source de Redis para caché de Superset y broker de Celery. |
-| **Proxy / Acceso** | Nginx | Puerta de enlace unificada (Puerto 80) para todos los servicios. |
-| **Identidad** | Keycloak | Gestión de identidad y acceso (OIDC) en Puerto 8001. |
-| **Secretos** | Vault | Gestión de secretos (HashiCorp) - Dev Mode en Puerto 8200. |
-| **Observabilidad** | Prometheus + Grafana | Monitoreo del estado de todos los servicios críticos. |
+| **Orquestación** | Prefect v3.x | Gestión de Pipelines de datos (ETL/ELT) y ML Ops. **(Imagen Personalizada con ML libs)** |
+| **Modelado Semántico** | Cube.js (v0.36.0) | Definición centralizada de métricas y caching de pre-agregados (Motor Cube Store). |
+| **Visualización / BI** | Apache Superset (v6.0.0) | Exploración de datos, Dashboards y reportes programados. |
+| **Datos / Metadatos** | PostgreSQL (v18.1) | Almacenamiento de datos fuente, resultados de ML y metadatos de Superset. |
+| **Caché / Broker** | Valkey (v8.0) | Reemplazo open-source de Redis para caché de Superset y broker de Celery. |
+| **Proxy / Acceso** | Nginx (v1.27) | Puerta de enlace unificada (Puerto 80) para todos los servicios. |
+| **Identidad** | Keycloak (v26.5.0) | Gestión de identidad y acceso (OIDC) en Puerto 8001. |
+| **Observabilidad** | Prometheus (v2.55.1) + Grafana (v12.3.1) | Monitoreo del estado de todos los servicios críticos. |
+| **Métricas Host** | cAdvisor (v0.49.1) | Exportador de métricas de contenedores para Prometheus. |
 
 ### 1.1. Integración de ML (Proof of Concept)
 
