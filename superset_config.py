@@ -124,7 +124,7 @@ AUTH_TYPE = AUTH_DB
 ################################################################################
 # Backend para resultados de SQL Lab
 RESULTS_BACKEND = RedisCache(
-    host=VALKEY_HOST, port=VALKEY_PORT, key_prefix='superset_results'
+    host=VALKEY_HOST, port=VALKEY_PORT, key_prefix='superset_results', db=0
 )
 
 # Caches de Aplicación
@@ -132,23 +132,32 @@ CACHE_CONFIG = {
     'CACHE_TYPE': 'RedisCache',
     'CACHE_DEFAULT_TIMEOUT': 86400,
     'CACHE_KEY_PREFIX': 'superset_cache_',
-    'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/0'
+    'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/1'
 }
+
 FILTER_STATE_CACHE_CONFIG = {
     'CACHE_TYPE': 'RedisCache',
     'CACHE_DEFAULT_TIMEOUT': 86400,
     'CACHE_KEY_PREFIX': 'superset_filter_',
-    'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/1'
-}
-DATA_CACHE_CONFIG = {
-    'CACHE_TYPE': 'RedisCache',
-    'CACHE_DEFAULT_TIMEOUT': 86400,
-    'CACHE_KEY_PREFIX': 'superset_data_',
     'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/2'
 }
 
+DATA_CACHE_CONFIG = {
+    'CACHE_TYPE': 'RedisCache',
+    'CACHE_DEFAULT_TIMEOUT': 3600, # 1 hora para datos
+    'CACHE_KEY_PREFIX': 'superset_data_',
+    'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/3'
+}
+
+THUMBNAIL_CACHE_CONFIG = {
+    'CACHE_TYPE': 'RedisCache',
+    'CACHE_DEFAULT_TIMEOUT': 86400 * 7, # 1 semana para thumbnails
+    'CACHE_KEY_PREFIX': 'superset_thumb_',
+    'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/4'
+}
+
 # Rate Limiting
-RATELIMIT_STORAGE_URI = f"redis://{VALKEY_HOST}:{VALKEY_PORT}/3"
+RATELIMIT_STORAGE_URI = f"redis://{VALKEY_HOST}:{VALKEY_PORT}/5"
 RATELIMIT_STRATEGY = "fixed-window"
 RATELIMIT_DEFAULT = "200 per minute"
 
@@ -161,9 +170,10 @@ FORCE_DATABASE_DRIVER_CACHE_ENGINE = True
 class CeleryConfig:
     broker_url = f"redis://{VALKEY_HOST}:{VALKEY_PORT}/0"
     result_backend = f"redis://{VALKEY_HOST}:{VALKEY_PORT}/0"
-    imports = ("superset.sql_lab", "superset.tasks.scheduler")
-    worker_prefetch_multiplier = 10
+    imports = ("superset.sql_lab", "superset.tasks.scheduler", "superset.tasks.thumbnails")
+    worker_prefetch_multiplier = 1
     task_acks_late = True
+    task_ignore_result = True
     beat_schedule = {
         "reports.scheduler": {"task": "reports.scheduler", "schedule": crontab(minute="*", hour="*")},
         "reports.prune_log": {"task": "reports.prune_log", "schedule": crontab(minute=0, hour=0)},
@@ -209,23 +219,27 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SCREENSHOT_LOCATE_WAIT = 60
 SCREENSHOT_LOAD_WAIT = 180
+SCREENSHOT_REPLACE_CONTENT_WITH_CANVAS = True
 
 # Credenciales para reportes (Usuario sistema)
 ALERT_REPORTS_WORKER_USERNAME = os.environ.get('ALERT_REPORTS_WORKER_USERNAME', 'admin')
-# ALERT_REPORTS_WORKER_PASSWORD = "password" # Definir en env var idealmente
+ALERT_REPORTS_WORKER_PASSWORD = os.environ.get('SUPERSET_ADMIN_PASSWORD', 'admin')
 ENABLE_ALERTS_REPORTS = True
+ALERT_REPORTS_NOTIFICATION_DRY_RUN = False
+ALERTS_ATTACH_REPORTS = True
 
 ################################################################################
 # 8. EMAIL (SMTP)
 ################################################################################
-SMTP_HOST = os.environ.get('SMTP_HOST')
-SMTP_PORT = os.environ.get('SMTP_PORT', 587)
-SMTP_USER = os.environ.get('SMTP_USER')
-SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD')
-SMTP_MAIL_FROM = SMTP_USER
+SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+SMTP_USER = os.environ.get('SMTP_USER', 'adempego2025@gmail.com')
+SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', 'ipwbjdgpglmqxmku')
+SMTP_MAIL_FROM = "Sistema de reportes SGI <adempego2025@gmail.com>"
 SMTP_STARTTLS = True
 SMTP_SSL = False
-EMAIL_REPORTS_SUBJECT_PREFIX = "[Superset] "
+# SMTP_SSL_SERVER_AUTH no es estándar en Flask-Mail/Superset pero forzamos TLS
+EMAIL_REPORTS_SUBJECT_PREFIX = os.environ.get('EMAIL_REPORTS_SUBJECT_PREFIX', '[Superset] ')
 EMAIL_REPORTS_CTA = "Ver en Dashboard"
 
 ################################################################################

@@ -143,7 +143,7 @@ services:
 
   celery-worker:
     image: custom-superset:latest
-    command: celery --app=superset.tasks.celery_app:app worker --pool=gevent --concurrency=4 --loglevel=INFO
+    command: celery --app=superset.tasks.celery_app:app worker --concurrency=4 --loglevel=INFO
     environment:
       - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
       - POSTGRES_HOST=postgres
@@ -163,9 +163,38 @@ services:
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
       - ALERT_REPORTS_WORKER_USERNAME=${ALERT_REPORTS_WORKER_USERNAME}
       - WEBDRIVER_BASEURL=${WEBDRIVER_BASEURL}
+      - SECRET_KEY=${SECRET_KEY}
+      - SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
       - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
+      - superset_home:/app/superset_home
+    depends_on:
+      - superset
+    healthcheck:
+      disable: true
+
+  celery-beat:
+    image: custom-superset:latest
+    command: celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule
+    environment:
+      - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=superset
+      - POSTGRES_PASSWORD=superset
+      - POSTGRES_DB=superset
+      - REDIS_HOST=valkey
+      - REDIS_PORT=6379
+      - CELERY_BROKER_URL=redis://valkey:6379/0
+      - CELERY_RESULT_BACKEND=redis://valkey:6379/0
+      - TZ=America/Mexico_City
+      - SECRET_KEY=${SECRET_KEY}
+      - SUPERSET_ADMIN_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+    volumes:
+      - ./superset_config.py:/app/pythonpath/superset_config.py
+      - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
+      - superset_home:/app/superset_home
     depends_on:
       - superset
     healthcheck:
@@ -254,6 +283,20 @@ services:
       - keycloak
       - prometheus
       - cube
+
+  superset-mcp:
+    build: 
+      context: ./superset-mcp
+    environment:
+      - SUPERSET_BASE_URL=http://superset:8088
+      - SUPERSET_USERNAME=${SUPERSET_ADMIN_USERNAME}
+      - SUPERSET_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=8010
+    ports:
+      - "8010:8010"
+    depends_on:
+      - superset
 
 volumes:
   postgres_data:
