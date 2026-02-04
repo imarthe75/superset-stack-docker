@@ -228,6 +228,21 @@ El sistema incluye reglas de alerta pre-configuradas en Grafana:
 - **Superset Workers**: Se ha configurado `SERVER_WORKER_AMOUNT=5` (Optimizado para ~2 CPUs mediante la regla `2*CPU + 1`).
 - **Límites de Memoria**: Servicios pesados (Superset, Cube, Postgres-Exporter) tienen límites estrictos de RAM para proteger el host.
 
+### 2.14. Integración con Claude Desktop (Superset MCP)
+
+Se ha integrado el **Model Control Protocol (MCP)** para permitir controlar Superset directamente desde Claude Desktop.
+
+- **Servicio**: `superset-mcp` en el puerto **8010**.
+- **Autenticación**: Automática (usa las credenciales de `.env`).
+- **Capacidades**:
+  - Listar y crear Dashboards/Charts.
+  - Ejecutar consultas SQL (SQL Lab).
+  - Gestionar Datasets y Bases de datos.
+
+> [!TIP]
+> **Guía de Configuración**: Para conectar tu Claude Desktop (Windows/Mac) a este servidor, sigue la guía detallada:
+> [👉 Ver Guía de Conexión (docs/claude_setup.md)](docs/claude_setup.md)
+
 ---
 
 ## PARTE 3: Gestión del Proyecto
