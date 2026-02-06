@@ -16,7 +16,7 @@ La solución se estructura en capas para aislar responsabilidades y maximizar el
 | **Proxy / Acceso** | Nginx (v1.27) | Puerta de enlace unificada (Puerto 80) para todos los servicios. |
 | **Identidad** | Keycloak (v26.5.0) | Gestión de identidad y acceso (OIDC) en Puerto 8001. |
 | **Observabilidad** | Prometheus (v2.55.1) + Grafana (v12.3.1) | Monitoreo del estado de todos los servicios críticos. |
-| **Métricas Host** | cAdvisor (v0.49.1) | Exportador de métricas de contenedores para Prometheus. |
+| **Métricas Host** | cAdvisor (v0.51.0) | Exportador de métricas de contenedores para Prometheus. |
 
 ### 1.1. Integración de ML (Proof of Concept)
 
@@ -103,6 +103,7 @@ Gracias al Proxy Inverso, todos los servicios son accesibles por la IP definida 
 | **Grafana** | `http://TU_IP/grafana/` |
 | **Cube.js API** | `http://TU_IP/cubejs/` |
 | **Prometheus** | `http://TU_IP/prometheus/` |
+| **cAdvisor** | `http://TU_IP/cadvisor/` |
 
 ### 2.4. Inicialización de Superset (Post-Instalación)
 
@@ -215,9 +216,17 @@ Todos los servicios críticos persisten su estado en carpetas locales (`./*_data
 - **Prefect**: `./prefect_data` (Base de datos SQLite local)
 - **Valkey**: `./valkey_data` (Caché persistente y mensajes)
 
-### 2.12. Observabilidad y Alertas (Grafana)
+### 2.12. Observabilidad y Monitoreo (Grafana)
 
-El sistema incluye reglas de alerta pre-configuradas en Grafana:
+El sistema incluye una pila completa de monitoreo con **Prometheus**, **Grafana**, **cAdvisor**, **Exporter de Postgres** y **StatsD Exporter** para Superset.
+
+**Tableros Pre-configurados:**
+
+- **Docker Monitoring**: Uso de CPU, RAM y Red de todos los contenedores.
+- **PostgreSQL Monitoring**: Conexiones activas, tamaño de DB y transacciones.
+- **Application Metrics**: Métricas internas de Superset y Cube.js vía StatsD.
+
+**Alertas Pre-configuradas:**
 
 - **Base de Datos**: Notifica si la latencia P99 de PostgreSQL excede **1000ms**.
 - **Caché**: Notifica si la tasa de aciertos de Cube.js cae por debajo del **80%**.
