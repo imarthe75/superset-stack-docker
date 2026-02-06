@@ -59,6 +59,7 @@ services:
       - CUBEJS_SQL_USER=superset
       - CUBEJS_SQL_PASSWORD=superset
       - CUBEJS_PG_SQL_PORT=15432
+      - CUBEJS_STATSD_URL=statsd://statsd-exporter:9125
       - TZ=America/Mexico_City
       # Multi-source Configuration
       - CUBEJS_DATASOURCES=default,extra_postgres
@@ -242,18 +243,33 @@ services:
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: gcr.io/cadvisor/cadvisor:v0.51.0
     ports:
       - "8080:8080"
     environment:
       - TZ=America/Mexico_City
+      - DOCKER_API_VERSION=1.44
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+    command: --url_base_prefix=/cadvisor
     depends_on:
       - valkey
+
+  statsd-exporter:
+    image: prom/statsd-exporter:v0.28.0
+    container_name: statsd-exporter
+    ports:
+      - "9102:9102"
+      - "9125:9125/udp"
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+    environment:
+      - TZ=America/Mexico_City
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.5.0
@@ -283,6 +299,7 @@ services:
       - keycloak
       - prometheus
       - cube
+      - cadvisor
 
   superset-mcp:
     build: 

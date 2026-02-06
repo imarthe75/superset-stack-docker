@@ -19,6 +19,8 @@ if not os.path.exists(SUP_LOG_DIR):
     except Exception:
         pass
 
+from superset.stats_logger import StatsdStatsLogger
+
 logging.basicConfig(
     level=logging.INFO,
     format=LOG_FORMAT,
@@ -31,6 +33,9 @@ logging.basicConfig(
         )
     ],
 )
+
+# Configuración de Métricas (StatsD)
+STATS_LOGGER = StatsdStatsLogger(host="statsd-exporter", port=9125, prefix="superset")
 
 ################################################################################
 # 2. RED & INFRAESTRUCTURA (DOCKER)
