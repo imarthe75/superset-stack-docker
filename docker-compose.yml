@@ -129,6 +129,7 @@ services:
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
       - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
+      - ./superset_assets:/app/superset/static/custom:ro
       - superset_home:/app/superset_home
     ports:
       - "8088:8088"
@@ -179,6 +180,7 @@ services:
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
       - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
+      - ./superset_assets:/app/superset/static/custom:ro
       - superset_home:/app/superset_home
     depends_on:
       - superset
@@ -207,6 +209,7 @@ services:
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
       - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
+      - ./superset_assets:/app/superset/static/custom:ro
       - superset_home:/app/superset_home
     depends_on:
       - superset

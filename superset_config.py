@@ -265,6 +265,6 @@ LANGUAGES = {
 APP_NAME = "Superset Stack"
 # Para usar un logo local, colócalo en /app/superset_home/static/ y usa '/static/tu_logo.png'
 # O puedes usar una URL externa directa
-APP_ICON = "/static/assets/images/superset-logo-horiz.png" 
+APP_ICON = "/static/custom/logo.png" 
 APP_ICON_WIDTH = 150
-FAVICON = "/static/assets/images/favicon.png"
+FAVICON = "/static/custom/favicon.png"
