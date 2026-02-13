@@ -96,7 +96,7 @@ Gracias al Proxy Inverso, todos los servicios son accesibles por la IP definida 
 
 | Servicio | URL |
 | :--- | :--- |
-| **Superset** | `http://TU_IP/` |
+| **Superset** | `http://TU_IP/tableros/` |
 | **Keycloak** | `http://TU_IP:8001/` |
 | **Vault** | `http://TU_IP:8200/` |
 | **Prefect UI** | `http://TU_IP/prefect/` |
@@ -248,9 +248,33 @@ Se ha integrado el **Model Control Protocol (MCP)** para permitir controlar Supe
   - Ejecutar consultas SQL (SQL Lab).
   - Gestionar Datasets y Bases de datos.
 
-> [!TIP]
-> **Guía de Configuración**: Para conectar tu Claude Desktop (Windows/Mac) a este servidor, sigue la guía detallada:
-> [👉 Ver Guía de Conexión (docs/claude_setup.md)](docs/claude_setup.md)
+---
+
+## PARTE 4: Personalización y Mantenimiento
+
+### 4.1. Personalización de Marca (Logo y Favicon)
+
+El sistema permite cambiar la imagen corporativa sin modificar el código interno:
+
+1. **Carpeta de Activos**: Coloca tus archivos en `./superset_assets/`.
+2. **Nombres Obligatorios**:
+   - `logo.png`: Reemplaza el logo de Superset.
+   - `favicon.png`: Reemplaza el icono de la pestaña.
+3. **Aplicar Cambios**: Reinicia el servicio para refrescar el mapeo (aunque al ser volumen, suele bastar con refrescar el navegador):
+   ```bash
+   docker compose restart superset
+   ```
+
+### 4.2. Configuración de Subruta (/tableros)
+
+El proyecto está configurado para correr bajo el prefijo `/tableros`. Si deseas cambiarlo, debes actualizar:
+- `.env`: Variable `SCRIPT_NAME`.
+- `superset_config.py`: `APPLICATION_ROOT` y `SESSION_COOKIE_PATH`.
+- `nginx.conf`: Directiva `location /tableros/` y todas las reglas de `sub_filter`.
+
+### 4.3. Solución de Problemas de Construcción (Build)
+
+En entornos con restricciones de red, la construcción puede fallar debido a bloqueos en PyPI. Se han configurado mirrors automáticos en los `Dockerfiles`. Puedes ajustar el mirror en `.env` mediante la variable `PYPI_MIRROR`.
 
 ---
 
