@@ -93,7 +93,7 @@ services:
     build: 
       context: ./docker/superset
       args:
-        PYPI_MIRROR: ${PYPI_MIRROR:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        PYPI_MIRROR: ${PYPI_MIRROR:-http://mirrors.cloud.tencent.com/pypi/simple/}
     image: custom-superset:latest
     environment:
       - SUPERSET_ENV=production
@@ -217,7 +217,7 @@ services:
     build:
       context: ./docker/prefect
       args:
-        PYPI_MIRROR: ${PYPI_MIRROR:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        PYPI_MIRROR: ${PYPI_MIRROR:-http://mirrors.cloud.tencent.com/pypi/simple/}
     command: prefect server start --host 0.0.0.0
     ports:
       - "4200:4200"
@@ -325,19 +325,19 @@ services:
       - cube
       - cadvisor
 
-  superset-mcp:
-    build: 
-      context: ./superset-mcp
-    environment:
-      - SUPERSET_BASE_URL=http://superset:8088
-      - SUPERSET_USERNAME=${SUPERSET_ADMIN_USERNAME}
-      - SUPERSET_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
-      - MCP_TRANSPORT=sse
-      - MCP_PORT=8010
-    ports:
-      - "8010:8010"
-    depends_on:
-      - superset
+#   superset-mcp:
+#     build: 
+#       context: ./superset-mcp
+#     environment:
+#       - SUPERSET_BASE_URL=http://superset:8088
+#       - SUPERSET_USERNAME=${SUPERSET_ADMIN_USERNAME}
+#       - SUPERSET_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+#       - MCP_TRANSPORT=sse
+#       - MCP_PORT=8010
+#     ports:
+#       - "8010:8010"
+#     depends_on:
+#       - superset
 
 volumes:
   postgres_data:

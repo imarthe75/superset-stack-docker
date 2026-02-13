@@ -86,6 +86,7 @@ SESSION_COOKIE_HTTPONLY = True
 ENABLE_PROXY_FIX = True      # Necesario detrás de Nginx
 APPLICATION_ROOT = "/tableros" 
 SESSION_COOKIE_PATH = "/tableros"
+OVERRIDE_HTTP_HEADERS = {'X-Forwarded-Prefix': '/tableros'}
 PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 TALISMAN_ENABLED = False     # Desactivado CSP estricto temporalmente (Dev)
 ALLOW_ADHOC_SUBQUERY = True  # Permitir SQL libre
@@ -259,7 +260,6 @@ LANGUAGES = {
     "es": {"flag": "es", "name": "Español"}
 }
 
-################################################################################
 # 10. BRANDING & UI CUSTOMIZATION
 ################################################################################
 APP_NAME = "Superset Stack"
