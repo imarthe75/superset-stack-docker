@@ -84,6 +84,9 @@ WTF_CSRF_ENABLED = False     # Relajado para Dev/API
 SESSION_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_HTTPONLY = True
 ENABLE_PROXY_FIX = True      # Necesario detrás de Nginx
+APPLICATION_ROOT = "/tableros" 
+SESSION_COOKIE_PATH = "/tableros"
+PROXY_FIX_CONFIG = {"x_for": 1, "x_proto": 1, "x_host": 1, "x_port": 1, "x_prefix": 1}
 TALISMAN_ENABLED = False     # Desactivado CSP estricto temporalmente (Dev)
 ALLOW_ADHOC_SUBQUERY = True  # Permitir SQL libre
 
@@ -219,7 +222,7 @@ WEBDRIVER_OPTION_ARGS = [
 
 # URLs para el worker (Usamos 'superset' que es el nombre del servicio en Docker)
 # NO usar IP fija (10.250.40.161) porque en Docker la red es interna.
-WEBDRIVER_BASEURL = "http://superset:8088"
+WEBDRIVER_BASEURL = "http://superset:8088/tableros"
 WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 
 SCREENSHOT_LOCATE_WAIT = 60
