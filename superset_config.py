@@ -139,21 +139,21 @@ RESULTS_BACKEND = RedisCache(
 # Caches de Aplicación
 CACHE_CONFIG = {
     'CACHE_TYPE': 'RedisCache',
-    'CACHE_DEFAULT_TIMEOUT': 86400,
+    'CACHE_DEFAULT_TIMEOUT': 300,
     'CACHE_KEY_PREFIX': 'superset_cache_',
     'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/1'
 }
 
 FILTER_STATE_CACHE_CONFIG = {
     'CACHE_TYPE': 'RedisCache',
-    'CACHE_DEFAULT_TIMEOUT': 86400,
+    'CACHE_DEFAULT_TIMEOUT': 300,
     'CACHE_KEY_PREFIX': 'superset_filter_',
     'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/2'
 }
 
 DATA_CACHE_CONFIG = {
     'CACHE_TYPE': 'RedisCache',
-    'CACHE_DEFAULT_TIMEOUT': 3600, # 1 hora para datos
+    'CACHE_DEFAULT_TIMEOUT': 300, # 1 hora para datos
     'CACHE_KEY_PREFIX': 'superset_data_',
     'CACHE_REDIS_URL': f'redis://{VALKEY_HOST}:{VALKEY_PORT}/3'
 }
