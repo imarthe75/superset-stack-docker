@@ -22,6 +22,10 @@ La solución se estructura en capas para aislar responsabilidades y maximizar el
 | **Identidad** | Keycloak (v26.5.5) | Gestión de identidad y acceso (OIDC) en Puerto 8001. |
 | **Observabilidad** | Prometheus (v3.10.0) + Grafana (v12.4.0) | Monitoreo del estado de todos los servicios críticos. |
 
+> [!TIP]
+> **🚀 ¿Quieres ver resultados de inmediato?**
+> Hemos incluido un "Starter Kit" con datos de ventas reales, modelos en Cube.js y entrenamiento en IA. Consulta la [Guía de Inicio Rápido](./docs/ai/GUIDE.md#starter-kit-demo-con-datos-reales) para activarlo en 2 pasos.
+
 ## PARTE 1.1: Requerimientos del Sistema
 
 Para un funcionamiento óptimo de todos los servicios integrados, se recomiendan las siguientes especificaciones:
