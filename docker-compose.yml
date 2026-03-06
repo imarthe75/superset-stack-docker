@@ -320,8 +320,8 @@ services:
       context: ./superset-mcp
     environment:
       - SUPERSET_BASE_URL=http://superset:8088
-      - SUPERSET_USERNAME=admin
-      - SUPERSET_PASSWORD=admin
+      - SUPERSET_USERNAME=${SUPERSET_ADMIN_USERNAME}
+      - SUPERSET_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
       - MCP_TRANSPORT=sse
       - MCP_PORT=8010
       - TZ=America/Mexico_City

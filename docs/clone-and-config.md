@@ -145,7 +145,7 @@ docker compose up -d
 docker compose exec superset superset db upgrade
 
 # Crear usuario admin
-docker compose exec superset superset fab create-admin --username admin --password admin --firstname Superset --lastname Admin --email admin@example.com
+docker compose exec superset superset fab create-admin --username admin --password Qwertyuiopasd5$ --firstname Superset --lastname Admin --email admin@example.com
 
 # Inicializar roles y permisos
 docker compose exec superset superset init

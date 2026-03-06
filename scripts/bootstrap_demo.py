@@ -3,8 +3,8 @@ import requests
 import json
 
 SUPERSET_URL = "http://localhost:8088"
-USERNAME = "admin"
-PASSWORD = "admin"
+USERNAME = os.getenv("SUPERSET_ADMIN_USERNAME", "admin")
+PASSWORD = os.getenv("SUPERSET_ADMIN_PASSWORD", "Qwertyuiopasd5$")
 
 def get_token():
     resp = requests.post(f"{SUPERSET_URL}/api/v1/security/login", json={
