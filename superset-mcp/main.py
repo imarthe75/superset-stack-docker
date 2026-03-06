@@ -11,7 +11,7 @@ import uvicorn
 # Configuration
 SUPERSET_BASE_URL = os.getenv("SUPERSET_BASE_URL", "http://superset:8088")
 SUPERSET_USERNAME = os.getenv("SUPERSET_USERNAME", "admin")
-SUPERSET_PASSWORD = os.getenv("SUPERSET_PASSWORD", "Qwertyuiopasd5$")
+SUPERSET_PASSWORD = os.getenv("SUPERSET_PASSWORD", "admin")
 
 # Global access token
 _access_token = None

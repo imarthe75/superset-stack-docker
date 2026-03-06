@@ -1,4 +1,5 @@
 vanna[postgres]
+chromadb
 flask
 flask-cors
 python-dotenv

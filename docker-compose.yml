@@ -63,6 +63,7 @@ services:
       - CUBEJS_STATSD_URL=statsd://statsd-exporter:9125
       - TZ=America/Mexico_City
       - ENABLE_PROXY_FIX=true
+      - CUBEJS_BASE_PATH=/cubejs
       # Multi-source Configuration
       - CUBEJS_DATASOURCES=default,extra_postgres
       # Default Source (Internal Config)
@@ -214,7 +215,9 @@ services:
       context: ./docker/prefect
       args:
         PYPI_MIRROR: ${PYPI_MIRROR:-https://pypi.org/simple/}
-    command: prefect server start --host 0.0.0.0
+    environment:
+      - PREFECT_API_URL=http://${SERVER_IP}/prefect/api
+      - TZ=America/Mexico_City
     ports:
       - "4200:4200"
     volumes:
@@ -241,9 +244,10 @@ services:
       - "3000:3000"
     depends_on:
       - prometheus
+    user: root
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin
-      - GF_SERVER_ROOT_URL=http://${DOMAIN}/grafana/
+      - GF_SERVER_ROOT_URL=http://${SERVER_IP}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - TZ=America/Mexico_City
       - ENABLE_PROXY_FIX=true
