@@ -1,6 +1,10 @@
-# 📚 Documentación Completa de Arquitectura e Instalación de Apache Superset (v6.0.0) - Dockerizado
+<p align="center">
+  <img src="assets/logo.png" width="250" alt="Aura Intelligence Logo">
+</p>
 
-Este documento sirve como la guía definitiva para el despliegue de producción de Apache Superset (versión estable v6.0.0), incluyendo componentes de alto rendimiento, capa semántica (Cube.js), orquestación con Prefect (v3.x) y un pipeline de prueba para Machine Learning (ML).
+# 🌌 Aura Intelligence Suite (v6.0.0) - AI & BI Unified Platform
+
+Este documento es la guía definitiva para **Aura Intelligence Suite**, una plataforma unificada que combina lo mejor de Apache Superset (v6.0.0), modelado semántico con Cube.js, y una potente capa de Inteligencia Artificial Generativa.
 
 ## PARTE 1: Resumen Arquitectónico (Estructura de Producción)
 
@@ -17,6 +21,23 @@ La solución se estructura en capas para aislar responsabilidades y maximizar el
 | **Proxy / Acceso** | Nginx (v1.28.2) | Puerta de enlace unificada (Puerto 80) para todos los servicios. |
 | **Identidad** | Keycloak (v26.5.5) | Gestión de identidad y acceso (OIDC) en Puerto 8001. |
 | **Observabilidad** | Prometheus (v3.10.0) + Grafana (v12.4.0) | Monitoreo del estado de todos los servicios críticos. |
+
+## PARTE 1.1: Requerimientos del Sistema
+
+Para un funcionamiento óptimo de todos los servicios integrados, se recomiendan las siguientes especificaciones:
+
+### Mínimos (Entornos de Desarrollo/Prueba)
+- **CPU**: 2 vCPUs (Intel/AMD)
+- **RAM**: 8 GB
+- **Almacenamiento**: 40 GB SSD (Docker Images + Data)
+
+### Recomendados (Producción Ligera)
+- **CPU**: 4 vCPUs
+- **RAM**: 16 GB
+- **Almacenamiento**: 100 GB NVMe
+- **Ancho de Banda**: 100 Mbps
+
+---
 
 ### 1.1. Capa de Inteligencia y ML
 
