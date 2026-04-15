@@ -1,0 +1,28 @@
+<!-- ClickHouse users configuration for Aura Intelligence Suite v7.5 -->
+<clickhouse>
+    <users>
+        <!-- Usuario principal (admin de ClickHouse) -->
+        <!-- La contraseña se inyecta via variable de entorno CLICKHOUSE_PASSWORD -->
+        <!-- en la imagen oficial de ClickHouse -->
+
+        <!-- Usuario de solo lectura para Superset -->
+        <superset_ro>
+            <password>superset_readonly_pass</password>
+            <networks>
+                <ip>::/0</ip>
+            </networks>
+            <profile>readonly</profile>
+            <quota>default</quota>
+            <access_management>0</access_management>
+        </superset_ro>
+    </users>
+
+    <profiles>
+        <readonly>
+            <readonly>1</readonly>
+            <max_memory_usage>5000000000</max_memory_usage>
+            <max_execution_time>120</max_execution_time>
+            <max_rows_to_read>1000000000</max_rows_to_read>
+        </readonly>
+    </profiles>
+</clickhouse>

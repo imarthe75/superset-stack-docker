@@ -1,46 +1,49 @@
 cube(`Orders`, {
-    sql: `SELECT * FROM public.orders`,
+  sql: `SELECT * FROM aura_gold.fct_sales`,
 
-    joins: {
-        Users: {
-            sql: `${CUBE}.user_id = ${Users}.id`,
-            relationship: `belongsTo`
-        },
-        Products: {
-            sql: `${CUBE}.product_id = ${Products}.id`,
-            relationship: `belongsTo`
-        }
+  measures: {
+    count: {
+      type: `count`
     },
-
-    measures: {
-        count: {
-            type: `count`
-        },
-        totalAmount: {
-            sql: `amount`,
-            type: `sum`,
-            format: `currency`
-        },
-        avgOrderValue: {
-            sql: `amount`,
-            type: `avg`,
-            format: `currency`
-        }
+    totalAmount: {
+      sql: `amount_usd`,
+      type: `sum`,
+      format: `currency`
     },
-
-    dimensions: {
-        id: {
-            sql: `id`,
-            type: `number`,
-            primaryKey: true
-        },
-        status: {
-            sql: `status`,
-            type: `string`
-        },
-        orderDate: {
-            sql: `order_date`,
-            type: `time`
-        }
+    avgOrderValue: {
+      sql: `amount_usd`,
+      type: `avg`,
+      format: `currency`
+    },
+    grossMargin: {
+      sql: `gross_margin_usd`,
+      type: `sum`,
+      format: `currency`
     }
+  },
+
+  dimensions: {
+    id: {
+      sql: `order_id`,
+      type: `number`,
+      primaryKey: true
+    },
+    status: {
+      sql: `order_status`,
+      type: `string`
+    },
+    category: {
+      sql: `category`,
+      type: `string`
+    },
+    country: {
+      sql: `country`,
+      type: `string`
+    },
+    orderDate: {
+      sql: `order_date`,
+      type: `time`
+    }
+  }
 });
+

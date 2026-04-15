@@ -1,0 +1,38 @@
+<!-- ClickHouse custom server configuration for Aura Intelligence Suite v7.5 -->
+<clickhouse>
+    <!-- Prometheus metrics endpoint (Prometheus scrape job: clickhouse) -->
+    <prometheus>
+        <endpoint>/metrics</endpoint>
+        <port>8123</port>
+        <metrics>true</metrics>
+        <events>true</events>
+        <asynchronous_metrics>true</asynchronous_metrics>
+        <errors_in_output_metrics>true</errors_in_output_metrics>
+    </prometheus>
+
+    <!-- Logging -->
+    <logger>
+        <level>information</level>
+        <log>/var/log/clickhouse-server/clickhouse-server.log</log>
+        <errorlog>/var/log/clickhouse-server/clickhouse-server.err.log</errorlog>
+        <size>500M</size>
+        <count>3</count>
+    </logger>
+
+    <!-- Compresión por defecto para ahorrar disco -->
+    <compression>
+        <case>
+            <method>lz4</method>
+        </case>
+    </compression>
+
+    <!-- Directorio de datos -->
+    <path>/var/lib/clickhouse/</path>
+    <tmp_path>/var/lib/clickhouse/tmp/</tmp_path>
+
+    <!-- Límites de memoria: 80% de la RAM asignada al contenedor (6G → ~4.8G) -->
+    <max_server_memory_usage_to_ram_ratio>0.8</max_server_memory_usage_to_ram_ratio>
+
+    <!-- Timezone del negocio -->
+    <timezone>America/Mexico_City</timezone>
+</clickhouse>

@@ -1,0 +1,43 @@
+version: 2
+
+sources:
+  - name: aura_raw
+    description: "Capa Bronze — Datos replicados en tiempo real desde PostgreSQL via PeerDB (CDC)"
+    database: aura_raw
+    schema: aura_raw
+    tables:
+      - name: orders
+        description: "Órdenes de venta replicadas desde PostgreSQL sales_data.orders"
+        columns:
+          - name: id
+            description: "PK de la orden"
+            tests: [not_null, unique]
+          - name: status
+            description: "Estado de la orden: completed, cancelled, pending, refunded"
+          - name: amount
+            description: "Monto de la orden en USD"
+            tests: [not_null]
+          - name: _peerdb_is_deleted
+            description: "Flag CDC: 1 si el registro fue eliminado en Postgres"
+
+      - name: products
+        description: "Catálogo de productos"
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: price
+            tests: [not_null]
+
+      - name: users
+        description: "Usuarios/clientes"
+        columns:
+          - name: id
+            tests: [not_null, unique]
+          - name: email
+            tests: [not_null]
+
+      - name: support_tickets
+        description: "Tickets de soporte al cliente"
+
+      - name: ml_prediccion_ventas
+        description: "Predicciones ML de ventas generadas por el pipeline de Prefect"

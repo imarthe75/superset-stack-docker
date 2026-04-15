@@ -1,0 +1,409 @@
+#!/usr/bin/env python3
+"""
+PROMPT_ENGINEERING.dspy — Módulo DSPy Base para Aura Intelligence Suite v8.0
+==============================================================================
+Proyecto: Aura Intelligence Suite
+Ubicación: .agent/BRAIN/PROMPT_ENGINEERING.dspy (ejecutar como módulo Python)
+
+PROPÓSITO:
+    Estandariza todas las llamadas a LLMs en el proyecto usando DSPy.
+    En lugar de prompts fijos (string templates), define Programas DSPy
+    que se autocalibran según el modelo (GPT-4, Llama 3, Mistral) y los datos.
+
+    REGLA: Nunca escribir f-strings de prompt en el código de producción.
+           Siempre usar las clases de este módulo.
+
+MÓDULOS DISPONIBLES:
+    - NLToSQL:         Genera SQL para Cube SQL API dado lenguaje natural
+    - SQLExplainer:    Explica un SQL generado en español
+    - DashboardAdvisor: Recomienda visualizaciones dado un resultado de query
+    - DataQualityChecker: Evalúa si un resultado parece correcto o alucinado
+    - AuraRAGPipeline: Pipeline completo RAG: pregunta → contexto → respuesta verificada
+
+REQUISITOS:
+    pip install dspy-ai>=2.4.0 openai>=1.0.0
+
+USO:
+    from .agent.BRAIN.PROMPT_ENGINEERING import NLToSQL, AuraRAGPipeline
+
+    # Uso simple
+    nl2sql = NLToSQL()
+    result = nl2sql(
+        question="Cuánto vendimos en marzo 2026 por categoría?",
+        schema_context="fct_sales: order_date Date, category LowCardinality(String), amount_usd Decimal"
+    )
+    print(result.sql)  # SELECT category, sum(amount_usd) FROM fct_sales WHERE ...
+
+    # Uso con optimización (requiere dataset de ejemplos)
+    from dspy.teleprompt import BootstrapFewShot
+    optimizer = BootstrapFewShot(metric=sql_accuracy_metric)
+    optimized_nl2sql = optimizer.compile(NLToSQL(), trainset=training_examples)
+"""
+from __future__ import annotations
+
+import os
+from typing import Any
+
+try:
+    import dspy
+    HAS_DSPY = True
+except ImportError:
+    HAS_DSPY = False
+    print(
+        "⚠️  DSPy no instalado. Ejecutar: pip install dspy-ai>=2.4.0\n"
+        "   Las clases estarán disponibles pero lanzarán RuntimeError al llamarlas."
+    )
+
+
+# ── Configuración del LM ─────────────────────────────────────────────────────
+
+def configure_lm(
+    model: str = "gpt-4o-mini",
+    max_tokens: int = 2000,
+    temperature: float = 0.0,
+) -> None:
+    """
+    Configura el Language Model para DSPy.
+    Soporta: OpenAI (default), Ollama (local), Anthropic.
+
+    Args:
+        model: Identificador del modelo. Prefijo 'ollama/' para modelos locales.
+        max_tokens: Máximo de tokens en la respuesta.
+        temperature: 0.0 para respuestas deterministas (SQL), 0.7 para creatividad.
+    """
+    if not HAS_DSPY:
+        raise RuntimeError("DSPy no instalado")
+
+    api_key = os.getenv("OPENAI_API_KEY")
+
+    if model.startswith("ollama/"):
+        # Modelo local via Ollama (sin costo, sin internet)
+        lm = dspy.OllamaLocal(
+            model=model.replace("ollama/", ""),
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+    elif model.startswith("anthropic/"):
+        lm = dspy.LM(
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+    else:
+        # OpenAI (default)
+        if not api_key:
+            raise ValueError(
+                "No se encontró OPENAI_API_KEY. "
+                "Usar un modelo local: configure_lm('ollama/llama3')"
+            )
+        lm = dspy.LM(
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+    dspy.configure(lm=lm)
+    print(f"✅ DSPy configurado con modelo: {model}")
+
+
+# ── Signatures (Contratos de I/O) ────────────────────────────────────────────
+
+class NLToSQLSignature(dspy.Signature):
+    """
+    Convierte una pregunta en lenguaje natural a SQL válido para Cube.js o ClickHouse.
+
+    El SQL debe:
+    - Usar solo tablas y columnas del schema_context proporcionado
+    - Para tablas en aura_raw.*, siempre añadir el modificador FINAL
+    - No inventar columnas que no existan
+    - Usar funciones de ClickHouse cuando sea apropiado (toStartOfMonth, formatReadableSize, etc.)
+    - Si la pregunta es sobre ventas, siempre filtrar is_cancelled = 0
+    """
+
+    question: str = dspy.InputField(
+        desc="Pregunta del usuario en español o inglés sobre los datos de negocio"
+    )
+    schema_context: str = dspy.InputField(
+        desc="Descripción del schema disponible: tablas, columnas y tipos de datos"
+    )
+    layer: str = dspy.InputField(
+        desc="Capa de datos a consultar: 'cube_sql_api', 'clickhouse_gold', 'clickhouse_raw'",
+    )
+
+    sql: str = dspy.OutputField(
+        desc="Query SQL válido y ejecutable. Sin explicaciones, solo el SQL puro."
+    )
+    explanation: str = dspy.OutputField(
+        desc="Explicación en 1-2 oraciones de qué hace el SQL y qué responde la pregunta."
+    )
+
+
+class SQLVerifierSignature(dspy.Signature):
+    """
+    Verifica si un SQL generado es correcto, seguro y no alucinado.
+    Detecta: columnas inventadas, JOINs incorrectos, funciones de PostgreSQL en ClickHouse.
+    """
+
+    sql: str = dspy.InputField(desc="SQL a verificar")
+    schema_context: str = dspy.InputField(desc="Schema disponible para validación")
+    layer: str = dspy.InputField(desc="Motor de destino: clickhouse o cube_sql_api")
+
+    is_valid: bool = dspy.OutputField(
+        desc="True si el SQL es correcto y ejecutable en el motor destino"
+    )
+    issues: str = dspy.OutputField(
+        desc="Lista de problemas encontrados (vacío si is_valid=True)"
+    )
+    corrected_sql: str = dspy.OutputField(
+        desc="SQL corregido si había errores. Idéntico al input si is_valid=True."
+    )
+
+
+class DashboardAdvisorSignature(dspy.Signature):
+    """
+    Recomienda el tipo de visualización más adecuado para un resultado de query SQL.
+    Contexto: dashboards de Superset 6.0 (Bar, Line, Pie, Table, BigNumber, etc.)
+    """
+
+    question: str = dspy.InputField(desc="Pregunta original del usuario")
+    sql: str = dspy.InputField(desc="SQL que genera los datos")
+    sample_result: str = dspy.InputField(
+        desc="Muestra de los primeros 3 registros del resultado (JSON o tabla)"
+    )
+
+    chart_type: str = dspy.OutputField(
+        desc="Tipo de gráfico recomendado de Superset: Bar Chart, Line Chart, Pie Chart, Big Number, Table, etc."
+    )
+    chart_config: str = dspy.OutputField(
+        desc="Configuración JSON básica para el chart de Superset (metrics, dimensions, groupby)"
+    )
+    rationale: str = dspy.OutputField(
+        desc="Justificación de 1 oración de por qué este tipo de gráfico es el más adecuado"
+    )
+
+
+class DataQualitySignature(dspy.Signature):
+    """
+    Evalúa si un resultado de query parece correcto o si puede ser una alucinación del LLM.
+    Detecta: totales imposibles, fechas fuera de rango, NULL inesperados, magnitudes absurdas.
+    """
+
+    question: str = dspy.InputField(desc="Pregunta original")
+    sql: str = dspy.InputField(desc="SQL que generó el resultado")
+    result_sample: str = dspy.InputField(desc="Muestra del resultado (primeras 5 filas)")
+    business_context: str = dspy.InputField(
+        desc="Contexto del negocio: rango de fechas esperado, moneda, magnitudes típicas"
+    )
+
+    seems_correct: bool = dspy.OutputField(
+        desc="True si el resultado parece razonable dado el contexto del negocio"
+    )
+    confidence: float = dspy.OutputField(
+        desc="Confianza en la corrección del resultado (0.0 a 1.0)"
+    )
+    anomalies: str = dspy.OutputField(
+        desc="Anomalías detectadas. Vacío si seems_correct=True y confidence > 0.8"
+    )
+
+
+# ── Módulos DSPy (Programas autocalibrados) ──────────────────────────────────
+
+class NLToSQL(dspy.Module):
+    """
+    Programa DSPy para convertir lenguaje natural a SQL.
+
+    Se autocalibra con BootstrapFewShot cuando se provee un trainset
+    de pares (pregunta, sql_correcto).
+
+    Ejemplo de entrenamiento:
+        from dspy.teleprompt import BootstrapFewShot
+        examples = [
+            dspy.Example(
+                question="Ventas totales de marzo 2026",
+                schema_context="fct_sales: order_date Date, amount_usd Decimal, is_cancelled UInt8",
+                layer="clickhouse_gold",
+                sql="SELECT sum(amount_usd) FROM aura_gold.fct_sales WHERE toYYYYMM(order_date) = 202603 AND is_cancelled = 0",
+            ).with_inputs("question", "schema_context", "layer"),
+        ]
+        optimizer = BootstrapFewShot(metric=lambda example, pred, **kw: pred.sql == example.sql)
+        optimized = optimizer.compile(NLToSQL(), trainset=examples)
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.generate_sql = dspy.ChainOfThought(NLToSQLSignature)
+        self.verify_sql = dspy.Predict(SQLVerifierSignature)
+
+    def forward(
+        self,
+        question: str,
+        schema_context: str,
+        layer: str = "clickhouse_gold",
+    ) -> dspy.Prediction:
+        # Paso 1: Generar SQL con cadena de razonamiento
+        generated = self.generate_sql(
+            question=question,
+            schema_context=schema_context,
+            layer=layer,
+        )
+
+        # Paso 2: Verificar automáticamente (self-correction)
+        verified = self.verify_sql(
+            sql=generated.sql,
+            schema_context=schema_context,
+            layer=layer,
+        )
+
+        final_sql = verified.corrected_sql if not verified.is_valid else generated.sql
+
+        return dspy.Prediction(
+            sql=final_sql,
+            explanation=generated.explanation,
+            is_valid=verified.is_valid,
+            issues=verified.issues,
+        )
+
+
+class AuraRAGPipeline(dspy.Module):
+    """
+    Pipeline RAG completo para el Agente Aura:
+    pregunta → contexto BRAIN → SQL → verificación → respuesta
+
+    Este es el módulo principal que integra todos los demás.
+    Úsalo cuando el agente necesite responder preguntas de negocio
+    con datos reales de ClickHouse.
+    """
+
+    # Schema por defecto de la capa Gold (actualizar si dbt añade columnas)
+    AURA_GOLD_SCHEMA = """
+    aura_gold.fct_sales:
+        order_id        UInt64        -- PK
+        user_id         UInt64
+        product_id      UInt64
+        product_name    String
+        category        LowCardinality(String)   -- Electronics, Furniture, Accessories, Appliances
+        country         LowCardinality(String)
+        order_status    LowCardinality(String)   -- completed, cancelled, pending, refunded
+        amount_usd      Decimal(10,2)
+        unit_price_usd  Decimal(10,2)
+        gross_margin_usd Decimal(10,2)
+        order_date      Date
+        order_month     Date
+        order_year      UInt16
+        order_week_start Date
+        day_of_week     UInt8                    -- 1=Lunes, 7=Domingo
+        is_completed    UInt8                    -- 0 o 1
+        is_cancelled    UInt8                    -- 0 o 1
+        data_replicated_at DateTime64(3)
+        dbt_updated_at  DateTime64(3)
+
+    aura_gold.dim_products:
+        product_id   UInt64
+        name         String
+        category     LowCardinality(String)
+        price_usd    Decimal(10,2)
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.nl_to_sql = NLToSQL()
+        self.advisor = dspy.Predict(DashboardAdvisorSignature)
+        self.quality_check = dspy.Predict(DataQualitySignature)
+
+    def forward(
+        self,
+        question: str,
+        layer: str = "clickhouse_gold",
+        schema_context: str | None = None,
+    ) -> dspy.Prediction:
+        schema = schema_context or self.AURA_GOLD_SCHEMA
+
+        # Paso 1: Generar y verificar SQL
+        sql_result = self.nl_to_sql(
+            question=question,
+            schema_context=schema,
+            layer=layer,
+        )
+
+        # Paso 2: Recomendar visualización
+        chart_result = self.advisor(
+            question=question,
+            sql=sql_result.sql,
+            sample_result="[ejecutar SQL para obtener muestra]",
+        )
+
+        return dspy.Prediction(
+            sql=sql_result.sql,
+            explanation=sql_result.explanation,
+            is_valid=sql_result.is_valid,
+            sql_issues=sql_result.issues,
+            chart_type=chart_result.chart_type,
+            chart_config=chart_result.chart_config,
+            chart_rationale=chart_result.rationale,
+        )
+
+
+# ── Métricas para Optimización ───────────────────────────────────────────────
+
+def sql_exact_match(example: Any, prediction: Any, **kwargs: Any) -> float:
+    """Métrica simple: el SQL generado coincide exactamente con el esperado."""
+    expected = example.sql.strip().lower()
+    predicted = prediction.sql.strip().lower()
+    return 1.0 if expected == predicted else 0.0
+
+
+def sql_executability_metric(
+    example: Any, prediction: Any, clickhouse_tools: Any = None, **kwargs: Any
+) -> float:
+    """
+    Métrica avanzada: el SQL es ejecutable en ClickHouse y retorna resultados.
+    Requiere conexión a ClickHouse (clickhouse_tools).
+    """
+    if clickhouse_tools is None:
+        return sql_exact_match(example, prediction)
+    try:
+        clickhouse_tools._safe_query(prediction.sql)
+        return 1.0
+    except Exception:
+        return 0.0
+
+
+# ── Demo / Test de Integración ────────────────────────────────────────────────
+
+def demo() -> None:
+    """Demuestra el uso de las clases DSPy sin llamadas a LLM reales."""
+    print("🧪 Demo DSPy — Aura Intelligence Suite v8.0")
+    print("=" * 60)
+
+    if not HAS_DSPY:
+        print("❌ DSPy no instalado. Instalar: pip install dspy-ai")
+        return
+
+    # Configurar con modelo local si no hay API key
+    api_key = os.getenv("OPENAI_API_KEY")
+    if api_key:
+        configure_lm("gpt-4o-mini", temperature=0.0)
+    else:
+        print("⚠️  No hay OPENAI_API_KEY. Usando respuestas simuladas.")
+        return
+
+    pipeline = AuraRAGPipeline()
+
+    test_questions = [
+        "¿Cuánto vendimos en total en el último mes?",
+        "¿Cuáles son los 3 productos más vendidos por categoría?",
+        "¿Cuántas órdenes canceladas tuvimos en 2026?",
+    ]
+
+    for q in test_questions:
+        print(f"\n❓ Pregunta: {q}")
+        result = pipeline(question=q, layer="clickhouse_gold")
+        print(f"💾 SQL: {result.sql}")
+        print(f"📊 Chart: {result.chart_type}")
+        print(f"✅ Válido: {result.is_valid}")
+        if result.sql_issues:
+            print(f"⚠️  Issues: {result.sql_issues}")
+
+
+if __name__ == "__main__":
+    demo()

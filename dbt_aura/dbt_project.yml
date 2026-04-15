@@ -1,0 +1,56 @@
+name: 'dbt_aura'
+version: '1.0.0'
+config-version: 2
+
+# Adaptador: dbt-clickhouse
+profile: 'clickhouse'
+
+# Directorios del proyecto
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# =========================================================================
+# Configuración de modelos por carpeta (Arquitectura Medallón)
+# =========================================================================
+models:
+  dbt_aura:
+    # STAGING (Bronze → Silver): Lee de aura_raw, escribe en aura_silver
+    staging:
+      +schema: aura_silver
+      +materialized: view          # Vistas para agilidad, sin costo de almacenamiento
+      +tags: ["staging", "bronze_to_silver"]
+
+    # INTERMEDIATE (Silver): Joins y limpieza
+    intermediate:
+      +schema: aura_silver
+      +materialized: table
+      +tags: ["intermediate", "silver"]
+      +engine: "MergeTree()"
+      +order_by: ["id"]
+
+    # MARTS (Gold): Tablas finales consumidas por Cube.js y Superset
+    marts:
+      +schema: aura_gold
+      +materialized: table
+      +tags: ["mart", "gold"]
+      +engine: "MergeTree()"
+
+# =========================================================================
+# Variables globales del proyecto
+# =========================================================================
+vars:
+  # Base de datos fuente (PeerDB replica aquí desde Postgres)
+  raw_database: 'aura_raw'
+  silver_database: 'aura_silver'
+  gold_database: 'aura_gold'
+  # Zona horaria del negocio
+  timezone: 'America/Mexico_City'

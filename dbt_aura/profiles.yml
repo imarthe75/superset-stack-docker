@@ -1,0 +1,37 @@
+# dbt profiles.yml — Conexión dbt-clickhouse
+# Ubicar en: ~/.dbt/profiles.yml  O  usar --profiles-dir /dbt_aura
+# Las credenciales se inyectan desde variables de entorno.
+
+clickhouse:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      schema: aura_silver          # Schema por defecto (sobreescrito por dbt_project.yml por carpeta)
+      host: "{{ env_var('CLICKHOUSE_HOST', 'clickhouse-server') }}"
+      port: 8123                   # HTTP interface
+      user: "{{ env_var('CLICKHOUSE_USER', 'aura') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD', 'aura_secure_pass') }}"
+      secure: false                # true en producción con TLS
+      verify: false
+      connect_timeout: 10
+      send_receive_timeout: 300    # 5 min para transformaciones pesadas
+      sync_request_timeout: 5
+      compress_block_size: 1048576
+      compression: lz4
+      driver: http                 # Usar HTTP interface (más estable con dbt)
+      custom_settings:
+        max_memory_usage: 10000000000       # 10GB max por query
+        max_bytes_before_external_group_by: 5000000000
+
+    prod:
+      type: clickhouse
+      schema: aura_silver
+      host: "{{ env_var('CLICKHOUSE_HOST', 'clickhouse-server') }}"
+      port: 8123
+      user: "{{ env_var('CLICKHOUSE_USER', 'aura') }}"
+      password: "{{ env_var('CLICKHOUSE_PASSWORD') }}"
+      secure: false
+      compress_block_size: 1048576
+      compression: lz4
+      driver: http

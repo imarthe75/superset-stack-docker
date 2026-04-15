@@ -1,0 +1,297 @@
+# 🌌 AGENTE RESIDENTE AURA v8.0 — GUÍA DE INICIO RÁPIDO
+
+## ¿Qué es Aura v8.0?
+
+**Aura Intelligence** es un agente residente autorregulado que mantiene la salud operacional de tu Modern Data Stack:
+
+```
+┌─────────────────────────────────────────────────────┐
+│         Agente Residente Aura (v8.0)                │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  COGNITIVO:      RULES.md + MAP.md + DECISIONS/    │
+│  MEMORIA:        ChromaDB + brain_index.py (RAG)   │
+│  ACCIÓN:         MCP Server (docker-compose ops)   │
+│  VALIDACIÓN:     Golden Sets + Great Expectations  │
+│                                                     │
+└─────────────────────────────────────────────────────┘
+```
+
+---
+
+## ⚡ 5 Minutos: Setup Inicial
+
+### Paso 1: Instalar Dependencias
+```bash
+cd /home/casmartsuperset/superset
+
+# Instalar ChromaDB + LangChain + embeddings
+pip install -r .agent/requirements.txt
+```
+
+**Esperado:**
+```
+Collecting chromadb==0.5.3
+Collecting langchain==0.1.15
+Collecting sentence-transformers==2.2.2
+...
+Successfully installed chromadb langchain sentence-transformers
+```
+
+### Paso 2: Indexar Base de Conocimiento
+```bash
+# Primera indexación (2-3 min)
+python .agent/brain_index.py --index
+
+# Esperado:
+# ✅ Indexed 24 chunks from superset_config.py
+# ✅ Indexed 12 chunks from Cube schemas
+# ✅ Indexed 156 chunks from dbt models
+# ✅ Indexed 8 chunks from golden sets
+# ✅ Indexation complete! Total chunks: 200
+```
+
+### Paso 3: Validar Memoria
+```bash
+# Test query
+python .agent/brain_index.py --query "¿cómo se calcula lifetime_value?"
+
+# Esperado:
+# 🔍 Querying: ¿cómo se calcula lifetime_value?
+# [1] dbt_model/marts/dim_customer.sql (dbt_model)
+#     Content: SELECT customer_id, SUM(amount) as lifetime_value FROM...
+```
+
+✅ **Agente listo**
+
+---
+
+## 🎯 Operaciones Diarias
+
+### 1. Revisar Estado del Stack
+```bash
+# Check salud de ClickHouse
+curl "http://localhost:8123/?query=SELECT%201"
+# Esperado: 1
+
+# Ver estado de replicación PeerDB
+curl "http://localhost:8085/api/db/stats" | jq '.replication_lag'
+# Esperado: < 5 segundos
+```
+
+### 2. Ejecutar Transformaciones
+```bash
+# Vía Prefect UI: http://localhost:4200
+# O manual:
+docker exec dbt-runner dbt run --select fct_sales
+
+# Ejecutar tests de integridad
+docker exec dbt-runner dbt test --select fct_sales
+```
+
+### 3. Indexación Periódica
+```bash
+# Ejecutar daemon (re-indexar cada 6h)
+python .agent/brain_index.py --daemon
+
+# O programar con cron:
+0 */6 * * * cd /home/casmartsuperset/superset && \
+            python .agent/brain_index.py --index >> .agent/logs/index.log
+```
+
+---
+
+## 📖 Estructura de Carpetas
+
+```
+.agent/
+├── 📄 RULES.md
+│   └─ Innegociables de operación (SLA < 1s, OIDC, 99% precisión)
+│
+├── 📄 MAP.md
+│   └─ Arquitectura completa: OLTP → OLAP → BI → AI
+│
+├── 📄 CONTEXT.md
+│   └─ Campos críticos por dominio (Sales, Customer, Product)
+│       + Validaciones + Golden sets
+│
+├── 📄 STATE.md
+│   └─ Estado actual v8.0 + log de sesiones + deudas técnicas
+│
+├── 📄 README_v8.md
+│   └─ Entregables completados + checklist + KPIs
+│
+├── 🐍 brain_index.py
+│   └─ Indexador automático (ChromaDB + LangChain)
+│       Uso: python brain_index.py --index/--query/--daemon
+│
+├── 📋 requirements.txt
+│   └─ Dependencias: chromadb, langchain, sentence-transformers
+│
+├── 📁 DECISIONS/
+│   ├─ WHY_CLICKHOUSE.md (ClickHouse vs PostgreSQL trade-offs)
+│   ├─ ARCHITECTURE_EVOLUTION.md (v7.0 → v8.0 timeline)
+│   └─ ... (decisiones futuras)
+│
+├── 📁 MCP/
+│   └─ CONFIG.md (Model Context Protocol configuration)
+│      - docker_compose_up/down/restart
+│      - validate_clickhouse_health
+│      - validate_peerdb_sync
+│      - query_prometheus_metrics
+│
+├── 📁 golden_sets/
+│   └─ Ejemplos validados de extracción (JSON)
+│      Uso: ChromaDB para few-shot prompting de Vanna AI
+│
+├── 📁 dspy_config/
+│   └─ Prompts programados (DSPy) por tipo de documento
+│      * sales_metric_prompt.py
+│      * customer_segment_prompt.py
+│
+├── 📁 vectordb/
+│   └─ Almacenamiento ChromaDB (generado en primera indexación)
+│      * collections/
+│      * index/
+│
+└── 📁 workflows/
+    └─ Prefect flows para auto-remediation
+       * healthcheck_and_repair.py
+       * validate_quality_gates.py
+```
+
+---
+
+## 🔍 Comandos Útiles
+
+```bash
+# === Brain Index ===
+python .agent/brain_index.py --index          # Indexación completa
+python .agent/brain_index.py --query "..."    # Busca semántica
+python .agent/brain_index.py --stats          # Ver estadísticas
+python .agent/brain_index.py --daemon         # Modo automático (6h)
+
+# === Docker Compose ===
+docker-compose up -d clickhouse-server peerdb  # Levantar OLAP stack
+docker-compose logs -f cube                     # Ver logs de Cube.js
+docker-compose ps                               # Ver status
+
+# === ClickHouse ===
+docker exec clickhouse-server clickhouse-client \
+  --query "SELECT count() FROM aura_bronze.sales"
+
+# === Prometheus ===
+curl "http://localhost:9090/api/v1/query?query=up" | jq '.'
+
+# === Grafana ===
+# UI: http://localhost:3000 (admin/admin)
+
+# === dbt ===
+docker exec dbt-runner dbt dags               # Ver lineage DAG
+docker exec dbt-runner dbt test               # Ejecutar tests
+```
+
+---
+
+## 📊 Métricas de Salud
+
+**El agente monitorea automáticamente:**
+
+| Métrica | SLA | Check via |
+|---------|-----|----------|
+| Query latency (p95) | < 1s | Grafana → Cube.js panel |
+| Cache hit rate | ≥ 95% | MCP → `validate_cube_cache` |
+| CDC lag | < 30s | MCP → `validate_peerdb_sync` |
+| ClickHouse health | OK | MCP → `validate_clickhouse_health` |
+| dbt test success | 100% | Prefect → dbt test results |
+
+---
+
+## 🚨 Troubleshooting
+
+### ❌ ChromaDB connection error
+```bash
+# Verificar ChromaDB está accesible
+python -c "import chromadb; print(chromadb.__version__)"
+# Si falla: pip install --upgrade chromadb
+```
+
+### ❌ ClickHouse query slow
+```bash
+# Check indexación
+docker exec clickhouse-server clickhouse-client \
+  --query "SELECT * FROM system.tables WHERE database = 'aura_bronze' FORMAT JSON" | jq '.data | length'
+
+# Force merge (slow pero limpia fragmentos)
+docker exec clickhouse-server clickhouse-client \
+  --query "OPTIMIZE TABLE aura_bronze.sales FINAL"
+```
+
+### ❌ PeerDB lag > 5 mins
+```bash
+# UIv: http://localhost:8085
+# Manual sync desde CLI:
+# (TODO: agregar script peerdb-cli)
+```
+
+### ❌ Valkey memory full
+```bash
+# Check memoria
+docker exec valkey valkey-cli INFO memory
+
+# Limpiar keys antiguas manually
+docker exec valkey valkey-cli FLUSHDB
+
+# O pre-configurado: MAXMEMORY-POLICY allkeys-lru
+```
+
+---
+
+## 🎓 Próximos Pasos
+
+### Semana 1
+- [x] Setup v8.0 cognitivo (RULES, MAP, CONTEXT)
+- [x] Implementar brain_index.py
+- [ ] ← **TÚ ESTÁS AQUÍ**
+
+### Semana 2
+- [ ] Crear golden_sets/ con ejemplos validados
+- [ ] Configurar MCP RBAC + audit logging
+- [ ] Integrar ChromaDB en Vanna AI
+
+### Semana 3
+- [ ] DSPy prompts per document type
+- [ ] Prefect workflows auto-remediation
+- [ ] ClickHouse performance tuning
+
+### Roadmap 2026
+- Kafka streaming (Q2): CDC lag sub-segundo
+- Sharding ClickHouse (Q2): 10x capacity
+- Vertex AI predictions (Q3): AutoML
+
+---
+
+## 📞 Soporte
+
+**Documentación:**
+- `.agent/RULES.md` — Innegociables
+- `.agent/MAP.md` — Arquitectura
+- `.agent/CONTEXT.md` — Campos + validaciones
+- `.agent/DECISIONS/` — Justificaciones arquitectónicas
+
+**Debugging:**
+- Logs: `docker-compose logs <service>`
+- Prometheus: http://localhost:9090
+- Grafana dashboards: http://localhost:3000
+- Prefect UI: http://localhost:4200
+
+**Contacto:**
+- Data Engineering Team
+- Slack: #data-platform
+- GitHub Issues: superset-stack-docker/issues
+
+---
+
+**¡Agente Residente Aura v8.0 está listo para operar! 🚀**
+
+*Última actualización: 2026-04-15*

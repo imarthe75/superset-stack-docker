@@ -1,0 +1,18 @@
+# Dependencias del BRAIN (RAG interno del Agente Residente v8.0)
+# Instalar con: pip install -r .agent/BRAIN/requirements.txt
+
+# Motor vectorial
+chromadb>=0.5.0
+
+# LangChain core y adaptadores
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-core>=0.2.0
+
+# Embeddings (elegir según disponibilidad)
+langchain-openai>=0.1.0          # Requiere OPENAI_API_KEY
+sentence-transformers>=3.0.0      # Alternativa offline (no requiere API key)
+
+# Utilidades
+tiktoken>=0.7.0                   # Tokenizador OpenAI (para chunking preciso)
+python-dotenv>=1.0.0              # Cargar .env para OPENAI_API_KEY

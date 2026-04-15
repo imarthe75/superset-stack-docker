@@ -1,30 +1,72 @@
 global:
   scrape_interval: 15s
+  evaluation_interval: 15s
 
 scrape_configs:
+  # Prometheus self-monitoring
   - job_name: "prometheus"
     metrics_path: /prometheus/metrics
     static_configs:
       - targets: ["prometheus:9090"]
 
+  # Superset via statsd-exporter
   - job_name: "superset"
     static_configs:
       - targets: ["statsd-exporter:9102"]
+    relabel_configs:
+      - target_label: service
+        replacement: superset
 
+  # PostgreSQL exporter (OLTP health)
   - job_name: "postgres-exporter"
     static_configs:
       - targets: ["postgres-exporter:9187"]
+    relabel_configs:
+      - target_label: service
+        replacement: postgres
 
+  # ClickHouse built-in Prometheus endpoint
+  # Expone: query_count, memory_usage, disk_io, replication_lag, etc.
+  - job_name: "clickhouse"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["clickhouse-server:8123"]
+    relabel_configs:
+      - target_label: service
+        replacement: clickhouse
+
+  # PeerDB replication latency metrics
+  # Mide: latencia CDC (tiempo WAL → ClickHouse), filas replicadas/s, errores
+  - job_name: "peerdb"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["peerdb:8085"]
+    relabel_configs:
+      - target_label: service
+        replacement: peerdb
+
+  # Cube.js via statsd-exporter
   - job_name: "cube"
     static_configs:
-      - targets: ["statsd-exporter:9102"] # Cube metrics can also flow through statsd
+      - targets: ["statsd-exporter:9102"]
+    relabel_configs:
+      - target_label: service
+        replacement: cube
 
+  # Prefect server
   - job_name: "prefect"
     metrics_path: /metrics
     static_configs:
       - targets: ["prefect:4200"]
+    relabel_configs:
+      - target_label: service
+        replacement: prefect
 
+  # cAdvisor — métricas de contenedores Docker
   - job_name: "cadvisor"
     metrics_path: /cadvisor/metrics
     static_configs:
       - targets: ["cadvisor:8080"]
+    relabel_configs:
+      - target_label: service
+        replacement: cadvisor

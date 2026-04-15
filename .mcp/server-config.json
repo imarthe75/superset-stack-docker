@@ -1,0 +1,286 @@
+{
+  "name": "aura-mcp-server",
+  "version": "8.0.0",
+  "description": "Servidor MCP del Agente Residente para Aura Intelligence Suite v8.0. Expone herramientas para Docker, ClickHouse, Keycloak y el BRAIN (RAG).",
+
+  "server": {
+    "transport": "stdio",
+    "command": "python",
+    "args": [".agent/MCP/server.py"],
+    "env": {
+      "PYTHONPATH": ".",
+      "CLICKHOUSE_HOST": "${CLICKHOUSE_HOST:-localhost}",
+      "CLICKHOUSE_USER": "${CLICKHOUSE_USER:-aura}",
+      "CLICKHOUSE_PASSWORD": "${CLICKHOUSE_PASSWORD}",
+      "POSTGRES_HOST": "${POSTGRES_HOST:-localhost}",
+      "POSTGRES_USER": "${POSTGRES_USER:-superset}",
+      "POSTGRES_PASSWORD": "${POSTGRES_PASSWORD}",
+      "KEYCLOAK_URL": "${KEYCLOAK_URL:-http://localhost:8001}",
+      "KEYCLOAK_ADMIN": "${KEYCLOAK_ADMIN:-admin}",
+      "KEYCLOAK_ADMIN_PASSWORD": "${KEYCLOAK_ADMIN_PASSWORD}",
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}",
+      "MCP_DRY_RUN": "${MCP_DRY_RUN:-false}"
+    }
+  },
+
+  "tools": [
+    {
+      "name": "docker_service_status",
+      "description": "Obtiene el estado de todos los servicios Docker Compose del stack Aura. Incluye health, puertos y tiempo de ejecución.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "Nombre del servicio. Si se omite, retorna todos.",
+            "enum": [
+              "superset", "postgres", "valkey", "cube", "clickhouse-server",
+              "peerdb", "dbt-runner", "prefect", "nginx", "grafana",
+              "prometheus", "keycloak", "cadvisor", "statsd-exporter",
+              "celery-worker", "celery-beat", "superset-mcp",
+              "flowise", "vanna-ai", "postgres-exporter"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_get_logs",
+      "description": "Obtiene los logs recientes de un servicio Docker para diagnóstico de errores.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "required": ["service"],
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "Nombre del servicio Docker"
+          },
+          "tail": {
+            "type": "integer",
+            "default": 100,
+            "minimum": 10,
+            "maximum": 1000,
+            "description": "Número de líneas de log a retornar"
+          },
+          "since": {
+            "type": "string",
+            "default": "5m",
+            "description": "Tiempo hacia atrás para filtrar logs (ej: '5m', '1h', '2026-04-14T00:00:00')"
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_restart_service",
+      "description": "Reinicia un servicio Docker Compose. NOTA: Solo permite servicios no críticos sin aprobación explícita. Postgres y ClickHouse requieren force=true.",
+      "permissions": ["write"],
+      "requiresApproval": true,
+      "inputSchema": {
+        "type": "object",
+        "required": ["service"],
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "Nombre del servicio a reiniciar"
+          },
+          "force": {
+            "type": "boolean",
+            "default": false,
+            "description": "Forzar reinicio de servicios sensibles (requiere aprobación del usuario)"
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_validate_compose",
+      "description": "Valida la sintaxis del archivo docker-compose.yml sin aplicar cambios.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "docker_resource_usage",
+      "description": "Muestra el consumo de CPU y RAM por contenedor en tiempo real.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "description": "Filtrar por servicio. Si se omite, retorna todos."
+          }
+        }
+      }
+    },
+    {
+      "name": "clickhouse_health",
+      "description": "Verifica que el servidor ClickHouse responde correctamente.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "clickhouse_replication_status",
+      "description": "Muestra el estado de replicación PeerDB: latencia CDC en segundos entre PostgreSQL y ClickHouse para cada tabla.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "clickhouse_table_stats",
+      "description": "Obtiene estadísticas de tamaño y filas por tabla en una base de datos ClickHouse.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "database": {
+            "type": "string",
+            "default": "aura_gold",
+            "enum": ["aura_raw", "aura_silver", "aura_gold"],
+            "description": "Base de datos ClickHouse a inspeccionar"
+          }
+        }
+      }
+    },
+    {
+      "name": "clickhouse_preview_table",
+      "description": "Muestra las primeras filas de una tabla Gold para validar el output de dbt.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "required": ["table"],
+        "properties": {
+          "table": {
+            "type": "string",
+            "enum": ["fct_sales", "dim_products"],
+            "description": "Tabla de la capa Gold a previsualizar"
+          },
+          "limit": {
+            "type": "integer",
+            "default": 5,
+            "maximum": 20
+          }
+        }
+      }
+    },
+    {
+      "name": "keycloak_health",
+      "description": "Verifica que Keycloak responde y el realm 'superset' está disponible.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "keycloak_get_clients",
+      "description": "Lista los clientes OIDC configurados en el realm de Keycloak.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "brain_query",
+      "description": "Consulta semántica sobre el código fuente indexado del repositorio Aura. Usa ChromaDB RAG para encontrar código relevante antes de proponer cambios.",
+      "permissions": ["read"],
+      "inputSchema": {
+        "type": "object",
+        "required": ["question"],
+        "properties": {
+          "question": {
+            "type": "string",
+            "description": "Pregunta o descripción del contexto a buscar en el código fuente"
+          },
+          "n_results": {
+            "type": "integer",
+            "default": 5,
+            "minimum": 1,
+            "maximum": 15,
+            "description": "Número de fragmentos de código relevantes a retornar"
+          }
+        }
+      }
+    },
+    {
+      "name": "brain_rebuild_index",
+      "description": "Re-indexa el repositorio completo en ChromaDB. Ejecutar cuando se agreguen archivos nuevos relevantes.",
+      "permissions": ["write"],
+      "requiresApproval": true,
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "rebuild": {
+            "type": "boolean",
+            "default": false,
+            "description": "Si true, borra el índice y reconstruye desde cero. Si false, actualización incremental."
+          }
+        }
+      }
+    }
+  ],
+
+  "resources": [
+    {
+      "uri": "file://.agent/RULES.md",
+      "name": "Agent Rules (Innegociables)",
+      "description": "Reglas inmutables del agente. Leer al inicio de cada sesión.",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "file://.agent/MAP.md",
+      "name": "Architecture Map",
+      "description": "Mapa técnico completo de Aura v8.0 con topología y árbol de archivos.",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "file://.agent/STATE.md",
+      "name": "Project State",
+      "description": "Estado actual del stack: servicios, checklist de migración, deudas técnicas.",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "file://docker-compose.yml",
+      "name": "Docker Compose v7.5",
+      "description": "Configuración completa del stack Aura MDS.",
+      "mimeType": "text/yaml"
+    },
+    {
+      "uri": "file://.env.example",
+      "name": "Environment Variables Reference",
+      "description": "Todas las variables de entorno del stack. NUNCA leer .env directo.",
+      "mimeType": "text/plain"
+    }
+  ],
+
+  "security": {
+    "allowedPaths": [
+      ".",
+      ".agent/",
+      "dbt_aura/",
+      "cube_schema/",
+      "prefect_flows/",
+      "scripts/",
+      "docker/"
+    ],
+    "deniedPaths": [
+      ".env",
+      ".git/",
+      "postgres_data/",
+      "clickhouse_data/",
+      "valkey_data/"
+    ],
+    "maxOutputTokens": 8000,
+    "requireApprovalForWrites": true,
+    "auditLog": ".agent/MCP/audit.log"
+  }
+}

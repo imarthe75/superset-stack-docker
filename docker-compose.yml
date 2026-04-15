@@ -1,135 +1,315 @@
+# =============================================================================
+# Aura Intelligence Suite — docker-compose.yml v7.5 (Modern Data Stack)
+# =============================================================================
+# REDES:
+#   aura_internal → todos los servicios backend (nunca accesibles desde host)
+#   aura_public   → solo nginx (única entrada desde el exterior)
+#
+# REGLA CRÍTICA: No exponer puertos de servicios internos en producción.
+#   Los ports: aquí definidos son SOLO para desarrollo local.
+#   En producción, comentar todos los ports: excepto nginx 80/443.
+#
+# REQUISITO: mínimo 16GB RAM. Ver .agent/AGENT.md §2.4 para límites detallados.
+# =============================================================================
+
 services:
+
+  # ===========================================================================
+  # CAPA 0: BASE DE DATOS TRANSACCIONAL (OLTP)
+  # ===========================================================================
   postgres:
     image: postgres:18.3
     environment:
-      POSTGRES_USER: superset
-      POSTGRES_PASSWORD: superset
-      POSTGRES_DB: superset
+      POSTGRES_USER: ${POSTGRES_USER:-superset}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superset}
+      POSTGRES_DB: ${POSTGRES_DB:-superset}
       TZ: America/Mexico_City
+      # Habilitar replicación lógica (WAL) para PeerDB CDC
+      POSTGRES_INITDB_ARGS: "--wal-level=logical"
+    command: >
+      postgres
+      -c wal_level=logical
+      -c max_replication_slots=10
+      -c max_wal_senders=10
+      -c wal_keep_size=1024
     ports:
-      - "5433:5432"
+      - "5433:5432"   # Solo desarrollo — quitar en producción
     volumes:
       - ./postgres_data:/var/lib/postgresql
-      - ./docker/postgres/init_sales_db.sql:/docker-entrypoint-initdb.d/init_sales_db.sql
+      - ./docker/postgres/init_sales_db.sql:/docker-entrypoint-initdb.d/01_init_sales_db.sql
+      - ./scripts/init_mds.sql:/docker-entrypoint-initdb.d/02_init_mds.sql
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "superset"]
-      interval: 10s
-      timeout: 5s
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-superset}"]
+      interval: 15s
+      timeout: 10s
       retries: 5
+      start_period: 30s
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 512M
 
   postgres-exporter:
     image: quay.io/prometheuscommunity/postgres-exporter
     environment:
-      DATA_SOURCE_NAME: postgresql://superset:superset@postgres:5432/superset?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-superset}:${POSTGRES_PASSWORD:-superset}@postgres:5432/${POSTGRES_DB:-superset}?sslmode=disable
       TZ: America/Mexico_City
-    ports:
-      - "9187:9187"
     depends_on:
-      - postgres
-    links:
-      - postgres
+      postgres:
+        condition: service_healthy
+    networks:
+      - aura_internal
+    restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 256M
-  valkey:
-    image: valkey/valkey:9.0.3
-    environment:
-      - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
-    ports:
-      - "6380:6379"
-    healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    command: valkey-server --appendonly yes
-    volumes:
-      - ./valkey_data:/data
 
-  cube:
-    image: cubejs/cube:v1.6.19
-    ports:
-      - "4000:4000"
-      - "15432:15432"
+  # ===========================================================================
+  # CAPA 1: MOTOR OLAP (ClickHouse)
+  # ===========================================================================
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:25.4
     environment:
-      - CUBEJS_CACHE_AND_QUEUE_DRIVER=cubestore
-      - CUBEJS_API_SECRET=${SECRET_KEY}
-      - CUBEJS_DEV_MODE=true
-      - CUBEJS_SQL_USER=superset
-      - CUBEJS_SQL_PASSWORD=superset
-      - CUBEJS_PG_SQL_PORT=15432
-      - CUBEJS_STATSD_URL=statsd://statsd-exporter:9125
-      - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
-      # Multi-source Configuration
-      - CUBEJS_DATASOURCES=default,extra_postgres
-      # Default Source (Internal Config)
-      - CUBEJS_DB_TYPE=postgres
-      - CUBEJS_DB_HOST=postgres
-      - CUBEJS_DB_NAME=sales_data
-      - CUBEJS_DB_USER=superset
-      - CUBEJS_DB_PASS=superset
-      # Extra Source (External Placeholder)
-      - CUBEJS_DS_EXTRA_POSTGRES_DB_TYPE=postgres
-      - CUBEJS_DS_EXTRA_POSTGRES_DB_HOST=10.4.3.23
-      - CUBEJS_DS_EXTRA_POSTGRES_DB_NAME=dw
-      - CUBEJS_DS_EXTRA_POSTGRES_DB_USER=superset_user
-      - CUBEJS_DS_EXTRA_POSTGRES_DB_PASS=L5upMXEjhdU0pajcGttf
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-aura}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-aura_secure_pass}
+      CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT: 1
+      TZ: America/Mexico_City
+    ports:
+      - "8123:8123"   # HTTP interface — solo desarrollo
+      - "9000:9000"   # Native protocol — solo desarrollo
     volumes:
-      - ./cube_schema:/cube/conf/model
-    depends_on:
-      - postgres
-      - valkey
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+      - ./docker/clickhouse/config.xml:/etc/clickhouse-server/config.d/custom.xml:ro
+      - ./docker/clickhouse/users.xml:/etc/clickhouse-server/users.d/aura_users.xml:ro
+    healthcheck:
+      test: ["CMD", "clickhouse-client", "--user", "${CLICKHOUSE_USER:-aura}", "--password", "${CLICKHOUSE_PASSWORD:-aura_secure_pass}", "--query", "SELECT 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
     deploy:
       resources:
         limits:
-          memory: 4G
+          cpus: '4'
+          memory: 6G
+        reservations:
+          memory: 2G
 
+  # ===========================================================================
+  # CAPA 2: CDC — Change Data Capture (PeerDB)
+  # ===========================================================================
+  peerdb:
+    image: ghcr.io/peerdb-io/peerdb:stable
+    environment:
+      PEERDB_CATALOG_USER: ${POSTGRES_USER:-superset}
+      PEERDB_CATALOG_PASSWORD: ${POSTGRES_PASSWORD:-superset}
+      PEERDB_CATALOG_HOST: postgres
+      PEERDB_CATALOG_PORT: 5432
+      PEERDB_CATALOG_DB: peerdb_catalog
+      PEERDB_LOG_LEVEL: INFO
+      TZ: America/Mexico_City
+    ports:
+      - "8085:8085"   # PeerDB UI — solo desarrollo
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ===========================================================================
+  # CAPA 3: TRANSFORMACIÓN (dbt runner — one-shot via Prefect)
+  # ===========================================================================
+  dbt-runner:
+    build:
+      context: ./docker/dbt
+    environment:
+      CLICKHOUSE_HOST: clickhouse-server
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-aura}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-aura_secure_pass}
+      CLICKHOUSE_DATABASE: aura_silver
+      DBT_PROJECT_DIR: /dbt_aura
+      TZ: America/Mexico_City
+    volumes:
+      - ./dbt_aura:/dbt_aura
+    depends_on:
+      clickhouse-server:
+        condition: service_healthy
+    networks:
+      - aura_internal
+    restart: no  # Se ejecuta on-demand via Prefect
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ===========================================================================
+  # CAPA 4: CACHE Y PRE-AGREGACIONES (Valkey)
+  # ===========================================================================
+  valkey:
+    image: valkey/valkey:9.0.3
+    environment:
+      TZ: America/Mexico_City
+    ports:
+      - "6380:6379"   # Solo desarrollo
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 15s
+    command: valkey-server --appendonly yes --maxmemory 400mb --maxmemory-policy allkeys-lru
+    volumes:
+      - ./valkey_data:/data
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
+
+  # ===========================================================================
+  # CAPA 5: CAPA SEMÁNTICA (Cube.js → ClickHouse)
+  # ===========================================================================
+  cube:
+    image: cubejs/cube:v1.6.19
+    ports:
+      - "4000:4000"     # REST API / Playground — solo desarrollo
+      - "15432:15432"   # SQL API (PostgreSQL wire protocol)
+    environment:
+      # Cache y cola
+      - CUBEJS_CACHE_AND_QUEUE_DRIVER=redis
+      - CUBEJS_REDIS_URL=redis://valkey:6379/1   # DB 1 para Cube (DB 0 para Celery)
+      # Seguridad
+      - CUBEJS_API_SECRET=${SECRET_KEY}
+      # SQL API
+      - CUBEJS_SQL_USER=${CUBE_SQL_USER:-superset}
+      - CUBEJS_SQL_PASSWORD=${CUBE_SQL_PASSWORD:-superset}
+      - CUBEJS_PG_SQL_PORT=15432
+      # Métricas
+      - CUBEJS_STATSD_URL=statsd://statsd-exporter:9125
+      # General
+      - CUBEJS_DEV_MODE=true
+      - TZ=America/Mexico_City
+      - ENABLE_PROXY_FIX=true
+      - CUBEJS_BASE_PATH=/cubejs
+      # Fuente de datos principal: ClickHouse (Gold layer)
+      - CUBEJS_DB_TYPE=clickhouse
+      - CUBEJS_DB_HOST=clickhouse-server
+      - CUBEJS_DB_PORT=8123
+      - CUBEJS_DB_NAME=aura_gold
+      - CUBEJS_DB_USER=${CLICKHOUSE_USER:-aura}
+      - CUBEJS_DB_PASS=${CLICKHOUSE_PASSWORD:-aura_secure_pass}
+      # Fuente adicional: PostgreSQL legacy (solo lectura)
+      - CUBEJS_DATASOURCES=default,pg_legacy
+      - CUBEJS_DS_PG_LEGACY_DB_TYPE=postgres
+      - CUBEJS_DS_PG_LEGACY_DB_HOST=postgres
+      - CUBEJS_DS_PG_LEGACY_DB_PORT=5432
+      - CUBEJS_DS_PG_LEGACY_DB_NAME=sales_data
+      - CUBEJS_DS_PG_LEGACY_DB_USER=${POSTGRES_USER:-superset}
+      - CUBEJS_DS_PG_LEGACY_DB_PASS=${POSTGRES_PASSWORD:-superset}
+    volumes:
+      - ./cube_schema:/cube/conf/model
+    depends_on:
+      valkey:
+        condition: service_healthy
+      clickhouse-server:
+        condition: service_healthy
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 2G
+        reservations:
+          memory: 512M
+
+  # ===========================================================================
+  # CAPA 6: BI Y VISUALIZACIÓN (Superset)
+  # ===========================================================================
   superset:
-    build: 
+    build:
       context: ./docker/superset
       args:
         PYPI_MIRROR: ${PYPI_MIRROR:-https://pypi.org/simple/}
-    image: custom-superset:latest
+    image: custom-superset:v7.5
     environment:
       - SUPERSET_ENV=production
       - SERVER_WORKER_AMOUNT=5
       - SUPERSET_LOAD_EXAMPLES=no
       - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
+      # PostgreSQL (metadata de Superset)
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=superset
-      - POSTGRES_PASSWORD=superset
-      - POSTGRES_DB=superset
+      - POSTGRES_USER=${POSTGRES_USER:-superset}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-superset}
+      - POSTGRES_DB=${POSTGRES_DB:-superset}
+      # Valkey / Celery
       - REDIS_HOST=valkey
       - REDIS_PORT=6379
       - CELERY_BROKER_URL=redis://valkey:6379/0
       - CELERY_RESULT_BACKEND=redis://valkey:6379/0
+      # Proxy / Auth
       - ENABLE_PROXY_FIX=true
       - APP_RLS=true
+      # SMTP
       - SMTP_HOST=${SMTP_HOST}
       - SMTP_PORT=${SMTP_PORT}
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - ROW_LIMIT=${ROW_LIMIT}
-      - SUPERSET_WEBSERVER_PORT=${SUPERSET_WEBSERVER_PORT}
+      # General
+      - ROW_LIMIT=${ROW_LIMIT:-5000000}
+      - SUPERSET_WEBSERVER_PORT=${SUPERSET_WEBSERVER_PORT:-8088}
+      # OIDC / Keycloak
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
       - OIDC_OPENID_REALM=${OIDC_OPENID_REALM}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
+      # Reporting
       - ALERT_REPORTS_WORKER_USERNAME=${ALERT_REPORTS_WORKER_USERNAME}
       - WEBDRIVER_BASEURL=${WEBDRIVER_BASEURL}
       - SECRET_KEY=${SECRET_KEY}
       - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
     volumes:
       - ./superset_config.py:/app/pythonpath/superset_config.py
       - ./custom_security_manager.py:/app/pythonpath/custom_security_manager.py
       - ./superset_assets:/app/superset/static/custom:ro
       - superset_home:/app/superset_home
     ports:
-      - "8088:8088"
+      - "8088:8088"   # Solo desarrollo
     depends_on:
       postgres:
         condition: service_healthy
@@ -140,30 +320,36 @@ services:
       interval: 15s
       timeout: 10s
       retries: 5
+      start_period: 60s
+    networks:
+      - aura_internal
+    restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: '2'
           memory: 2G
+        reservations:
+          memory: 512M
 
   celery-worker:
-    image: custom-superset:latest
+    image: custom-superset:v7.5
     command: celery --app=superset.tasks.celery_app:app worker --concurrency=4 --loglevel=INFO
     environment:
       - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=superset
-      - POSTGRES_PASSWORD=superset
-      - POSTGRES_DB=superset
+      - POSTGRES_USER=${POSTGRES_USER:-superset}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-superset}
+      - POSTGRES_DB=${POSTGRES_DB:-superset}
       - REDIS_HOST=valkey
       - REDIS_PORT=6379
       - CELERY_BROKER_URL=redis://valkey:6379/0
       - CELERY_RESULT_BACKEND=redis://valkey:6379/0
       - TZ=America/Mexico_City
       - ENABLE_PROXY_FIX=true
-      - ROW_LIMIT=${ROW_LIMIT}
-      - SUPERSET_WEBSERVER_PORT=${SUPERSET_WEBSERVER_PORT}
+      - ROW_LIMIT=${ROW_LIMIT:-5000000}
+      - SUPERSET_WEBSERVER_PORT=${SUPERSET_WEBSERVER_PORT:-8088}
       - OIDC_CLIENT_ID=${OIDC_CLIENT_ID}
       - OIDC_OPENID_REALM=${OIDC_OPENID_REALM}
       - OIDC_ISSUER_URL=${OIDC_ISSUER_URL}
@@ -177,20 +363,31 @@ services:
       - ./superset_assets:/app/superset/static/custom:ro
       - superset_home:/app/superset_home
     depends_on:
-      - superset
+      superset:
+        condition: service_healthy
     healthcheck:
       disable: true
+    networks:
+      - aura_internal
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          memory: 512M
 
   celery-beat:
-    image: custom-superset:latest
+    image: custom-superset:v7.5
     command: celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule
     environment:
       - SUPERSET_CONFIG_PATH=/app/pythonpath/superset_config.py
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_USER=superset
-      - POSTGRES_PASSWORD=superset
-      - POSTGRES_DB=superset
+      - POSTGRES_USER=${POSTGRES_USER:-superset}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-superset}
+      - POSTGRES_DB=${POSTGRES_DB:-superset}
       - REDIS_HOST=valkey
       - REDIS_PORT=6379
       - CELERY_BROKER_URL=redis://valkey:6379/0
@@ -205,10 +402,112 @@ services:
       - ./superset_assets:/app/superset/static/custom:ro
       - superset_home:/app/superset_home
     depends_on:
-      - superset
+      superset:
+        condition: service_healthy
     healthcheck:
       disable: true
+    networks:
+      - aura_internal
+    restart: on-failure
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
 
+  # ===========================================================================
+  # CAPA 7: IA Y CHAT WITH DATA
+  # ===========================================================================
+  superset-mcp:
+    build:
+      context: ./superset-mcp
+    environment:
+      - SUPERSET_BASE_URL=http://superset:8088
+      - SUPERSET_USERNAME=${SUPERSET_ADMIN_USERNAME}
+      - SUPERSET_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
+      - MCP_TRANSPORT=sse
+      - MCP_PORT=8010
+      - TZ=America/Mexico_City
+    ports:
+      - "8010:8010"   # Solo desarrollo
+    depends_on:
+      superset:
+        condition: service_healthy
+    networks:
+      - aura_internal
+    restart: unless-stopped
+
+  flowise:
+    image: flowiseai/flowise:latest
+    environment:
+      - PORT=3001
+      - DATABASE_PATH=/root/.flowise
+      - APIKEY_PATH=/root/.flowise
+      - SECRETKEY_PATH=/root/.flowise
+      - LOG_PATH=/root/.flowise
+      # Flowise consulta Cube SQL API, no ClickHouse directamente
+      - CUBE_SQL_HOST=cube
+      - CUBE_SQL_PORT=15432
+      - CUBE_SQL_USER=${CUBE_SQL_USER:-superset}
+      - CUBE_SQL_PASSWORD=${CUBE_SQL_PASSWORD:-superset}
+      - TZ=America/Mexico_City
+    ports:
+      - "3001:3001"   # Solo desarrollo
+    volumes:
+      - flowise_data:/root/.flowise
+    depends_on:
+      - cube
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  vanna-ai:
+    build:
+      context: ./vanna-ai
+    environment:
+      # Vanna AI ahora consulta Cube SQL API (capa semántica)
+      # para retornar métricas validadas, no cálculos ad-hoc sobre raw data
+      - CUBE_SQL_HOST=cube
+      - CUBE_SQL_PORT=15432
+      - CUBE_SQL_USER=${CUBE_SQL_USER:-superset}
+      - CUBE_SQL_PASSWORD=${CUBE_SQL_PASSWORD:-superset}
+      # Fallback legacy (solo para entrenamiento inicial del modelo)
+      - POSTGRES_HOST=postgres
+      - POSTGRES_DB=sales_data
+      - POSTGRES_USER=${POSTGRES_USER:-superset}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-superset}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - TZ=America/Mexico_City
+    ports:
+      - "8011:8011"   # Solo desarrollo
+    volumes:
+      - vanna_data:/app/vanna_db
+    depends_on:
+      - cube
+      - postgres
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          memory: 256M
+
+  # ===========================================================================
+  # CAPA 8: ORQUESTACIÓN (Prefect v3)
+  # ===========================================================================
   prefect:
     build:
       context: ./docker/prefect
@@ -217,14 +516,58 @@ services:
     command: prefect server start --host 0.0.0.0
     environment:
       - PREFECT_API_URL=http://${SERVER_IP}/prefect/api
+      - CLICKHOUSE_HOST=clickhouse-server
+      - CLICKHOUSE_PORT=8123
+      - CLICKHOUSE_USER=${CLICKHOUSE_USER:-aura}
+      - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-aura_secure_pass}
       - TZ=America/Mexico_City
     ports:
-      - "4200:4200"
+      - "4200:4200"   # Solo desarrollo
     volumes:
       - ./prefect_flows:/opt/prefect/flows
       - ./prefect_data:/root/.prefect
+      - ./dbt_aura:/opt/prefect/dbt_aura   # dbt accesible desde Prefect flows
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          memory: 256M
 
+  # ===========================================================================
+  # CAPA 9: IDENTIDAD (Keycloak OIDC)
+  # ===========================================================================
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5.5
+    ports:
+      - "8001:8080"   # Solo desarrollo
+    environment:
+      - KEYCLOAK_ADMIN=${KEYCLOAK_ADMIN:-admin}
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      - KC_HOSTNAME_STRICT=false
+      - KC_HTTP_ENABLED=true
+      - KC_HTTP_RELATIVE_PATH=/auth
+      - TZ=America/Mexico_City
+      - ENABLE_PROXY_FIX=true
+    command: start-dev
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          memory: 256M
 
+  # ===========================================================================
+  # CAPA 10: OBSERVABILIDAD (Prometheus + Grafana + cAdvisor + statsd)
+  # ===========================================================================
   prometheus:
     image: prom/prometheus:v3.10.0
     user: root
@@ -232,21 +575,30 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "9090:9090"   # Solo desarrollo
     command: --config.file=/etc/prometheus/prometheus.yml --web.external-url=/prometheus/
     environment:
       - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
 
   grafana:
     image: grafana/grafana:12.4.0
     ports:
-      - "3000:3000"
+      - "3000:3000"   # Solo desarrollo
     depends_on:
       - prometheus
     user: root
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GF_ADMIN_PASSWORD:-admin}
       - GF_SERVER_ROOT_URL=http://${SERVER_IP}/grafana/
       - GF_SERVER_SERVE_FROM_SUB_PATH=true
       - TZ=America/Mexico_City
@@ -255,14 +607,23 @@ services:
       - ./grafana_data:/var/lib/grafana
       - ./docker/grafana/provisioning:/etc/grafana/provisioning
       - ./docker/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          memory: 128M
 
   cadvisor:
     image: ghcr.io/google/cadvisor:0.56.2
     ports:
-      - "8080:8080"
+      - "8080:8080"   # Solo desarrollo
     environment:
       - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
       - DOCKER_API_VERSION=1.44
     volumes:
       - /:/rootfs:ro
@@ -270,8 +631,14 @@ services:
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
     command: --url_base_prefix=/cadvisor
-    depends_on:
-      - valkey
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
 
   statsd-exporter:
     image: prom/statsd-exporter:v0.29.0
@@ -279,35 +646,25 @@ services:
     ports:
       - "9102:9102"
       - "9125:9125/udp"
+    environment:
+      - TZ=America/Mexico_City
+    networks:
+      - aura_internal
+    restart: unless-stopped
     deploy:
       resources:
         limits:
           memory: 128M
-    environment:
-      - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:26.5.5
-    ports:
-      - "8001:8080"
-    environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin
-      - KC_HOSTNAME_STRICT=false
-      - KC_HTTP_ENABLED=true
-      - KC_HTTP_RELATIVE_PATH=/auth
-      - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
-    command: start-dev
-
+  # ===========================================================================
+  # CAPA 11: GATEWAY (Nginx — única salida pública)
+  # ===========================================================================
   nginx:
     image: nginx:1.28.2
     ports:
-      - "80:80"
+      - "80:80"       # Expuesto al exterior
     environment:
       - TZ=America/Mexico_City
-      - ENABLE_PROXY_FIX=true
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
@@ -318,57 +675,48 @@ services:
       - prometheus
       - cube
       - cadvisor
+      - flowise
+      - vanna-ai
+      - superset-mcp
+    networks:
+      - aura_internal  # Accede a servicios internos
+      - aura_public    # Recibe tráfico externo
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          memory: 64M
 
-  superset-mcp:
-    build: 
-      context: ./superset-mcp
-    environment:
-      - SUPERSET_BASE_URL=http://superset:8088
-      - SUPERSET_USERNAME=${SUPERSET_ADMIN_USERNAME}
-      - SUPERSET_PASSWORD=${SUPERSET_ADMIN_PASSWORD}
-      - MCP_TRANSPORT=sse
-      - MCP_PORT=8010
-      - TZ=America/Mexico_City
-    ports:
-      - "8010:8010"
-    depends_on:
-      - superset
-
-  flowise:
-    image: flowiseai/flowise:latest
-    environment:
-      - PORT=3001
-      - DATABASE_PATH=/root/.flowise
-      - APIKEY_PATH=/root/.flowise
-      - SECRETKEY_PATH=/root/.flowise
-      - LOG_PATH=/root/.flowise
-      - TZ=America/Mexico_City
-    ports:
-      - "3001:3001"
-    volumes:
-      - flowise_data:/root/.flowise
-    restart: always
-
-  vanna-ai:
-    build:
-      context: ./vanna-ai
-    environment:
-      - POSTGRES_HOST=postgres
-      - POSTGRES_DB=superset
-      - POSTGRES_USER=superset
-      - POSTGRES_PASSWORD=superset
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    ports:
-      - "8011:8011"
-    volumes:
-      - vanna_data:/app/vanna_db
-    depends_on:
-      - postgres
-
+# =============================================================================
+# VOLÚMENES
+# =============================================================================
 volumes:
-  postgres_data:
   superset_home:
     name: superset-project_superset_home
-  grafana_data:
   flowise_data:
   vanna_data:
+  clickhouse_data:
+    name: aura_clickhouse_data
+  clickhouse_logs:
+    name: aura_clickhouse_logs
+  peerdb_data:
+    name: aura_peerdb_data
+
+# =============================================================================
+# REDES — PRINCIPIO DE MÍNIMO PRIVILEGIO
+# =============================================================================
+networks:
+  aura_internal:
+    # Red privada para comunicación entre servicios backend
+    # Ningún servicio en esta red es accesible desde el host (sin ports:)
+    driver: bridge
+    internal: false   # Permite salida a internet para pulls de imágenes/APIs
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+  aura_public:
+    # Red pública — solo nginx pertenece a esta red
+    driver: bridge
