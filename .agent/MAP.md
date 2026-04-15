@@ -1,6 +1,6 @@
-# MAP.md — Mapa Técnico del Proyecto Aura v8.0
+# MAP.md — Mapa Técnico del Proyecto Aura v8.2
 # Proyecto: Aura Intelligence Suite (superset-stack-docker)
-# Última actualización: 2026-04-14
+# Última actualización: 2026-04-15
 # LEER ANTES DE CODIFICAR — Este archivo es el mapa de navegación del agente.
 
 ---
@@ -16,10 +16,8 @@
         │ HTTP:80
         ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│  NGINX 1.28.2    [aura_public + aura_internal]                      │
-│  Rutas: / → superset | /cubejs/ → cube | /grafana/ → grafana        │
-│         /auth/ → keycloak | /prefect/ → prefect | /peerdb/ → peerdb │
 │         /vanna/ → vanna-ai | /flowise/ → flowise | /mcp/ → mcp      │
+│         /catalog/ → openmetadata-server                             │
 └──────────────────────────────┬──────────────────────────────────────┘
                                │ [aura_internal network: 172.28.0.0/16]
    ┌───────────────────────────┼───────────────────────────────────────┐
@@ -61,18 +59,29 @@
 │  │  Raw CDC    │  │  + int_*    │  │  fct_sales, dim_products  │   │
 │  │ FINAL query │  │  views      │  │  (Cube + Superset)        │   │
 │  └─────────────┘  └──────────────┘  └──────────────────────────┘   │
-└──────────────────────┬──────────────────────────────────────────────┘
-                       │
-          ┌────────────┴──────────────────┐
-          │                               │
-          ▼ [profile: analytics]          ▼
-┌──────────────────────┐    ┌─────────────────────────────────────┐
-│  DBT-RUNNER          │    │   CUBE.JS v1.6.19  :4000 :15432     │
-│  dbt-clickhouse 1.8  │    │   CUBEJS_DB_TYPE=clickhouse         │
-│  Project: /dbt_aura  │    │   Source: aura_gold.*               │
-│  Bronze→Silver→Gold  │    │   SQL API: :15432 (PG wire protocol)│
-│  Triggered by Prefect│    │   Pre-aggs → Valkey DB1             │
-└──────────────────────┘    └──────────────┬──────────────────────┘
+└──────────────────────┬──────────────────────┬───────────────────────┘
+                       │                      │
+          ┌────────────┴─────────────┐        ▼ [Gobernanza]
+          │                          │   ┌───────────────────────────┐
+          ▼ [profile: analytics]     │   │     OPENMETADATA 1.2      │
+┌──────────────────────┐             │   │  (Catalog & Lineage)      │
+│  DBT-RUNNER          │             │   │  Source: Multi-DB         │
+│  + Great Expectations│             │   │  Search: OpenSearch       │
+│  Bronze→Silver→Gold  │             │   └──────────────┬────────────┘
+│  Audit: Quality Tests│             │                  │
+└──────────┬───────────┘             ▼                  │
+           └────────────────────────>│<─────────────────┘
+                                     │
+          ┌──────────────────────────┴─────────────────┐
+          │                                            │
+          ▼ [profile: analytics]                       ▼
+┌─────────────────────────────────────┐      ┌─────────────────────────┐
+│   CUBE.JS v1.6.19  :4000 :15432     │      │   AI CHAT / BI          │
+│   CUBEJS_DB_TYPE=clickhouse         │      │   (Superset / Vanna)    │
+│   Source: aura_gold.*               │      │   /                     │
+│   SQL API: :15432 (PG wire protocol)│      │   /flowise /vanna       │
+│   Pre-aggs → Valkey DB1             │      └─────────────────────────┘
+└──────────┬──────────────────────────┘
                                            │ SQL :15432
                        ┌───────────────────┼───────────────────────┐
                        ▼                   ▼                       ▼

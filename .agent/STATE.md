@@ -7,11 +7,11 @@
 
 ---
 
-## 📌 VERSIÓN ACTUAL DEL STACK: v8.0 (AGENTE RESIDENTE)
+## 📌 VERSIÓN ACTUAL DEL STACK: v8.2 (ECOSISTEMA TOTAL)
 
 | Componente          | Versión          | Estado         | Notas                              |
 |---------------------|------------------|----------------|------------------------------------|
-| **Stack**           | **v8.0**         | ✅ ACTIVE      | Agente Residente + RAG interno    |
+| **Stack**           | **v8.2**         | ✅ ACTIVE      | Ecosistema Total + Gobernanza     |
 | Apache Superset     | 7.5              | ✅ Operativo   |                                  |
 | PostgreSQL          | 18.3             | ✅ Operativo   | WAL para PeerDB CDC              |
 | ClickHouse          | 25.4             | ✅ Operativo   | Motor OLAP principal             |
@@ -26,10 +26,11 @@
 | Grafana             | 12.4.0           | ✅ Operativo   | Dashboards observabilidad        |
 | Flowise             | latest           | ✅ Operativo   | LLM workflows                    |
 | Vanna AI            | custom           | ✅ Operativo   | Text-to-SQL + Cube SQL API       |
-| **ChromaDB**        | **0.5.3**        | ✅ NEW (v8.0)  | Vector knowledge base            |
-| **Superset MCP**    | **custom**       | ✅ NEW (v8.0)  | Model Context Protocol server    |
-| cAdvisor            | 0.56.2           | ✅ Operativo   | Container metrics                |
-| statsd-exporter     | v0.29.0          | ✅ Operativo   | Custom metrics collection        |
+| **ChromaDB**        | **0.5.3**        | ✅ Operativo   | Vector knowledge base            |
+| **Superset MCP**    | **custom**       | ✅ Operativo   | Model Context Protocol server    |
+| **OpenMetadata**    | **1.2.4**        | ✅ NEW (v8.2)  | Catálogo, Gobernanza y Linaje    |
+| **OpenSearch**      | **2.11.0**       | ✅ NEW (v8.2)  | Motor de búsqueda meta-datos     |
+| **Great Expectations**| **1.0.0**      | ✅ NEW (v8.2)  | Validación de Calidad (GE)       |
 
 ---
 
@@ -56,13 +57,9 @@
 [✅] statsd-exporter   → interno:9102,9125
 [✅] nginx             → 0.0.0.0:80
 ```
-[✅] superset-mcp      → interno:8010 → nginx:80/mcp/
-[✅] flowise           → interno:3001 → nginx:80/flowise/
-[✅] vanna-ai          → interno:8011 → nginx:80/vanna/
-[✅] postgres-exporter → interno:9187
-[🔴] clickhouse-server → PENDIENTE (añadir en docker-compose.yml)
-[🔴] peerdb            → PENDIENTE (configurar mirror pg→ch)
-[🔴] dbt-runner        → PENDIENTE (crear imagen + flows)
+[✅] openmetadata-server → interno:8585 → nginx:80/catalog/
+[✅] opensearch          → interno:9200
+[✅] great-expectations  → integrado en dbt/prefect
 ```
 
 ---

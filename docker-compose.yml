@@ -1,5 +1,5 @@
 # =============================================================================
-# Aura Intelligence Suite — docker-compose.yml v7.5 (Modern Data Stack)
+# Aura Intelligence Suite — docker-compose.yml v8.2 (Ecosistema Total)
 # =============================================================================
 # REDES:
 #   aura_internal → todos los servicios backend (nunca accesibles desde host)
@@ -9,7 +9,8 @@
 #   Los ports: aquí definidos son SOLO para desarrollo local.
 #   En producción, comentar todos los ports: excepto nginx 80/443.
 #
-# REQUISITO: mínimo 16GB RAM. Ver .agent/AGENT.md §2.4 para límites detallados.
+# REQUISITO: mínimo 24GB RAM (Recomendado 32GB para OpenMetadata + OpenSearch).
+# Ver .agent/AGENT.md §2.4 para límites detallados.
 # =============================================================================
 
 services:
@@ -38,6 +39,7 @@ services:
       - ./postgres_data:/var/lib/postgresql
       - ./docker/postgres/init_sales_db.sql:/docker-entrypoint-initdb.d/01_init_sales_db.sql
       - ./scripts/init_mds.sql:/docker-entrypoint-initdb.d/02_init_mds.sql
+      - ./scripts/init_openmetadata.sql:/docker-entrypoint-initdb.d/03_init_openmetadata.sql
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-superset}"]
       interval: 15s
@@ -520,6 +522,7 @@ services:
       - CLICKHOUSE_PORT=8123
       - CLICKHOUSE_USER=${CLICKHOUSE_USER:-aura}
       - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD:-aura_secure_pass}
+      - GE_HOME=/opt/prefect/great_expectations
       - TZ=America/Mexico_City
     ports:
       - "4200:4200"   # Solo desarrollo
@@ -657,6 +660,65 @@ services:
           memory: 128M
 
   # ===========================================================================
+  # CAPA 12: GOBERNANZA Y CATÁLOGO (OpenMetadata)
+  # ===========================================================================
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    environment:
+      - cluster.name=opensearch-cluster
+      - node.name=opensearch-node
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - DISABLE_INSTALL_DEMO_CONFIG=true
+      - DISABLE_SECURITY_PLUGIN=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  openmetadata-server:
+    image: openmetadata/server:1.2.4
+    environment:
+      - DB_PARAMS=user=${POSTGRES_USER:-superset}&password=${POSTGRES_PASSWORD:-superset}&dbName=openmetadata_db&serverName=postgres&port=5432&driverClass=org.postgresql.Driver&dbScheme=postgresql
+      - SEARCH_TYPE=opensearch
+      - SEARCH_HOST=opensearch
+      - SEARCH_PORT=9200
+      - SEARCH_USER=admin
+      - SEARCH_PASSWORD=admin
+      - SEARCH_SCHEME=http
+      - AUTHENTICATION_PROVIDER=no-auth
+      - JWT_ISSUER=open-metadata.org
+      - JWT_PUBLIC_KEY_URL=http://openmetadata-server:8585/api/v1/config/jwks
+      - JWT_KEY_ID=openmetadata-jwt-key
+    volumes:
+      - ./docker/openmetadata/conf:/opt/openmetadata/conf
+    depends_on:
+      postgres:
+        condition: service_healthy
+      opensearch:
+        condition: service_started
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+
+  # ===========================================================================
   # CAPA 11: GATEWAY (Nginx — única salida pública)
   # ===========================================================================
   nginx:
@@ -678,6 +740,7 @@ services:
       - flowise
       - vanna-ai
       - superset-mcp
+      - openmetadata-server
     networks:
       - aura_internal  # Accede a servicios internos
       - aura_public    # Recibe tráfico externo
@@ -704,6 +767,8 @@ volumes:
     name: aura_clickhouse_logs
   peerdb_data:
     name: aura_peerdb_data
+  opensearch_data:
+    name: aura_opensearch_data
 
 # =============================================================================
 # REDES — PRINCIPIO DE MÍNIMO PRIVILEGIO
