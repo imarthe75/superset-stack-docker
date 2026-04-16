@@ -30,7 +30,7 @@ Vanna AI Engine
 ```python
 #!/usr/bin/env python3
 """
-Vanna AI con ChromaDB integration (v8.0)
+Vanna AI con ChromaDB integration (v0.8)
 """
 
 from fastapi import FastAPI, WebSocket

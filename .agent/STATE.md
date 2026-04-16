@@ -7,17 +7,17 @@
 
 ---
 
-## 📌 VERSIÓN ACTUAL DEL STACK: v8.2 (ECOSISTEMA TOTAL)
+## 📌 VERSIÓN ACTUAL DEL STACK: v0.8 (ECOSISTEMA TOTAL)
 
 | Componente          | Versión          | Estado         | Notas                              |
 |---------------------|------------------|----------------|------------------------------------|
-| **Stack**           | **v8.2**         | ✅ ACTIVE      | Ecosistema Total + Gobernanza     |
+| **Stack**           | **v0.8**         | ✅ ACTIVE      | Ecosistema Total + Gobernanza     |
 | Apache Superset     | 7.5              | ✅ Operativo   |                                  |
 | PostgreSQL          | 18.3             | ✅ Operativo   | WAL para Debezium CDC           |
 | ClickHouse          | 25.4             | ✅ Operativo   | Motor OLAP principal             |
-| Redpanda            | latest           | 🔄 Migración  | Broker C++ (reemplaza Kafka)     |
-| Debezium Connect    | latest           | 🔄 Migración  | Motor CDC Postgres -> Redpanda  |
-| ClickHouse Sink     | latest           | 🔄 Migración  | Sink Redpanda -> ClickHouse     |
+| Redpanda            | latest           | ✅ Operativo   | Broker C++ (reemplaza Kafka)     |
+| Debezium Connect    | latest           | ✅ Operativo   | Motor CDC Postgres -> Redpanda  |
+| ClickHouse Sink     | latest           | ✅ Operativo   | Sink Redpanda -> ClickHouse     |
 | dbt-clickhouse      | 1.8.5            | ✅ Operativo   | Transformaciones Silver/Gold     |
 | Valkey              | 9.0.3            | ✅ Operativo   | Cache + pre-aggregations         |
 | Cube.js             | v1.6.19          | ✅ Operativo   | Semantic layer + SQL API         |
@@ -30,13 +30,13 @@
 | Vanna AI            | custom           | ✅ Operativo   | Text-to-SQL + Cube SQL API       |
 | **ChromaDB**        | **0.5.3**        | ✅ Operativo   | Vector knowledge base            |
 | **Superset MCP**    | **custom**       | ✅ Operativo   | Model Context Protocol server    |
-| **OpenMetadata**    | **1.2.4**        | ✅ NEW (v8.2)  | Catálogo, Gobernanza y Linaje    |
-| **OpenSearch**      | **2.11.0**       | ✅ NEW (v8.2)  | Motor de búsqueda meta-datos     |
-| **Great Expectations**| **1.0.0**      | ✅ NEW (v8.2)  | Validación de Calidad (GE)       |
+| **OpenMetadata**    | **1.2.4**        | ✅ NEW (v0.8)  | Catálogo, Gobernanza y Linaje    |
+| **OpenSearch**      | **2.11.0**       | ✅ NEW (v0.8)  | Motor de búsqueda meta-datos     |
+| **Great Expectations**| **1.0.0**      | ✅ NEW (v0.8)  | Validación de Calidad (GE)       |
 
 ---
 
-## ✅ SERVICIOS ACTIVOS (v8.0)
+## ✅ SERVICIOS ACTIVOS (v0.8)
 
 ```
 [✅] postgres          → 0.0.0.0:5433 (host) / postgres:5432 (interno)
@@ -67,7 +67,7 @@
 
 ---
 
-## 🔄 PROGRESO DE MIGRACIÓN v7.5 (Checklist)
+## 🔄 PROGRESO DE MIGRACIÓN v0.7 (Checklist)
 
 ### Fase 1: Capa de Memoria Agéntica
 - [x] Crear `.agent/AGENT.md`
@@ -76,7 +76,7 @@
 - [ ] Crear `.agent/workflows/` con GitHub Actions o scripts de CI
 
 ### Fase 2: Infraestructura MDS
-- [x] Diseñar `docker-compose.yml` v7.5 con redes aisladas
+- [x] Diseñar `docker-compose.yml` v0.7 con redes aisladas
 - [x] Agregar servicio `clickhouse-server`
 - [x] Agregar servicio `clickhouse-server`
 - [x] Migración: Reemplazar PeerDB por Redpanda + Debezium
@@ -127,30 +127,30 @@
 
 ## 📝 LOG DE SESIONES
 
-### 2026-04-15 — Sesión v8.0: Agente Residente + RAG Internal
+### 2026-04-15 — Sesión v0.8: Agente Residente + RAG Internal
 - **Agente:** GitHub Copilot (Claude Haiku 4.5)
 - **Trabajo realizado:**
   - ✅ Creado `.agent/RULES.md` — Estándares de precisión 99%, manejo OIDC+Keycloak, innegociables
   - ✅ Creado `.agent/MAP.md` — Arquitectura detallada (Medallion model: Bronze/Silver/Gold)
   - ✅ Creado `.agent/DECISIONS/WHY_CLICKHOUSE.md` — Trade-offs ClickHouse vs PostgreSQL
-  - ✅ Creado `.agent/DECISIONS/ARCHITECTURE_EVOLUTION.md` — Timeline v7.0→v8.0
+  - ✅ Creado `.agent/DECISIONS/ARCHITECTURE_EVOLUTION.md` — Timeline v0.7→v0.8
   - ✅ Creado `.agent/brain_index.py` — Indexador ChromaDB para memoria interna (RAG engine)
   - ✅ Creado `.agent/requirements.txt` — Dependencias (chromadb, langchain, sentence-transformers)
-  - ✅ Actualizado `.agent/STATE.md` — v8.0 status + tabla de componentes
+  - ✅ Actualizado `.agent/STATE.md` — v0.8 status + tabla de componentes
 - **Entregables:**
   - Brain indexer funcional: ChromaDB local vector DB para semantics search
   - Documentación de memory architecture: RULES → MAP → DECISIONS (cognitiva)
   - Procedimiento de indexación: `python .agent/brain_index.py --index` (full)
   - Query engine: `python .agent/brain_index.py --query "pregunta semántica"`
   - Daemon mode: `python .agent/brain_index.py --daemon` (6h refresh)
-- **Próximos pasos v8.0:**
+- **Próximos pasos v0.8:**
   1. Crear `.agent/MCP/` server para ejecutar comandos docker-compose
   2. ✅ Crear `.agent/golden_sets/` con ejemplos de extracción validados
   3. ✅ Implementar DSPy prompts en `.agent/dspy_config/` per document type
   4. Integrar ChromaDB queryser en Vanna AI y Flowise
   5. Agregar MCP resources a superset-mcp para orchestration
 
-### 2026-04-16 — Sesión v8.3: Estabilización de PeerDB & Observabilidad
+### 2026-04-16 — Sesión v0.8: Estabilización de PeerDB & Observabilidad
 - **Agente:** Antigravity (Gemini)
 - **Trabajo realizado:**
   - ✅ **Revisión de Logs:** Analizados logs de `peerdb` y servicios críticos. No se detectaron errores de 'Connection Reset' o 'Memory Pressure' activos.
@@ -163,7 +163,7 @@
 - **Status:** Fase de estabilización completada para los parámetros solicitados. Replicación lógica activa y monitoreada.
 
 
-### 2026-04-15 — Sesión v8.2: Data Engineering & Workflows
+### 2026-04-15 — Sesión v0.8: Data Engineering & Workflows
 - **Agente:** Antigravity (Gemini)
 - **Trabajo realizado:**
   - ✅ Poblado `.agent/golden_sets/` con ejemplos JSON validados de `fct_sales`, `dim_customer` y `dim_product`.
@@ -172,12 +172,12 @@
   - ✅ Implementado RBAC y Audit Logging en el servidor `superset-mcp/main.py`.
   - ✅ Creado dashboard Grafana para Auditoría MCP (`mcp_audit.json`).
   - ✅ Añadidas plantillas de Vault Agent Injector para rotación segura de secretos.
-- **Próximos pasos v8.3 (COMPLETADOS):**
+- **Próximos pasos v0.8 (COMPLETADOS):**
   - ✅ Integradas ChromaDB queries automatizadas en Vanna AI (usando Cube SQL y train_golden_sets endpoint).
   - ✅ Creada documentación de topología Flowise para análisis automáticos en `.agent/flowise/`.
-- **Status:** EL STACK AURA V8 (v8.3) AHORA ESTÁ COMPLETAMENTE OPERATIVO. Ready for `docker compose up -d`.
+- **Status:** EL STACK AURA V8 (v0.8) AHORA ESTÁ COMPLETAMENTE OPERATIVO. Ready for `docker compose up -d`.
 
-### 2026-04-16 — Sesión v8.4: Migración Full stack a Redpanda
+### 2026-04-16 — Sesión v0.8: Migración Full stack a Redpanda
 - **Agente:** Antigravity (Anticipatory Resident Agent)
 - **Trabajo realizado:**
   - ✅ **Re-Arquitectura:** Sustitución de PeerDB/Temporal por Redpanda (C++) y Debezium for CDC.

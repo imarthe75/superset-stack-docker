@@ -1,12 +1,12 @@
-# 🌌 AGENTE RESIDENTE AURA v8.0 — GUÍA DE INICIO RÁPIDO
+# 🌌 AGENTE RESIDENTE AURA v0.8 — GUÍA DE INICIO RÁPIDO
 
-## ¿Qué es Aura v8.0?
+## ¿Qué es Aura v0.8?
 
 **Aura Intelligence** es un agente residente autorregulado que mantiene la salud operacional de tu Modern Data Stack:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│         Agente Residente Aura (v8.0)                │
+│         Agente Residente Aura (v0.8)                │
 ├─────────────────────────────────────────────────────┤
 │                                                     │
 │  COGNITIVO:      RULES.md + MAP.md + DECISIONS/    │
@@ -116,7 +116,7 @@ python .agent/brain_index.py --daemon
 │       + Validaciones + Golden sets
 │
 ├── 📄 STATE.md
-│   └─ Estado actual v8.0 + log de sesiones + deudas técnicas
+│   └─ Estado actual v0.8 + log de sesiones + deudas técnicas
 │
 ├── 📄 README_v8.md
 │   └─ Entregables completados + checklist + KPIs
@@ -130,7 +130,7 @@ python .agent/brain_index.py --daemon
 │
 ├── 📁 DECISIONS/
 │   ├─ WHY_CLICKHOUSE.md (ClickHouse vs PostgreSQL trade-offs)
-│   ├─ ARCHITECTURE_EVOLUTION.md (v7.0 → v8.0 timeline)
+│   ├─ ARCHITECTURE_EVOLUTION.md (v0.7 → v0.8 timeline)
 │   └─ ... (decisiones futuras)
 │
 ├── 📁 MCP/
@@ -260,7 +260,7 @@ docker exec valkey valkey-cli FLUSHDB
 ## 🎓 Próximos Pasos
 
 ### Semana 1
-- [x] Setup v8.0 cognitivo (RULES, MAP, CONTEXT)
+- [x] Setup v0.8 cognitivo (RULES, MAP, CONTEXT)
 - [x] Implementar brain_index.py
 - [ ] ← **TÚ ESTÁS AQUÍ**
 
@@ -302,6 +302,6 @@ docker exec valkey valkey-cli FLUSHDB
 
 ---
 
-**¡Agente Residente Aura v8.0 está listo para operar! 🚀**
+**¡Agente Residente Aura v0.8 está listo para operar! 🚀**
 
 *Última actualización: 2026-04-15*

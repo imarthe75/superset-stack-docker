@@ -1,4 +1,4 @@
-# MAP.md — Mapa Técnico del Proyecto Aura v8.2
+# MAP.md — Mapa Técnico del Proyecto Aura v0.8
 # Proyecto: Aura Intelligence Suite (superset-stack-docker)
 # Última actualización: 2026-04-15
 # LEER ANTES DE CODIFICAR — Este archivo es el mapa de navegación del agente.
@@ -9,7 +9,7 @@
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                         AURA v8.0 — DATA FLOW MAP                          ║
+║                         AURA v0.8 — DATA FLOW MAP                          ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 [INTERNET / Usuario]
@@ -140,7 +140,7 @@ superset/                           ← RAÍZ DEL PROYECTO
 ├── .mcp/
 │   └── server-config.json          ← Configuración servidor MCP
 │
-├── docker-compose.yml              ← Orquestación de servicios (v7.5 MDS)
+├── docker-compose.yml              ← Orquestación de servicios (v0.7 MDS)
 ├── nginx.conf                      ← Gateway único (172.28.0.0/16)
 ├── prometheus.yml                  ← Scrape jobs: CH, Redpanda, Postgres, etc.
 ├── superset_config.py              ← Configuración Python de Superset

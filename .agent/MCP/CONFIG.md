@@ -146,7 +146,7 @@ Docker daemon (socket: /var/run/docker.sock)
 
 ## Seguridad
 
-### Restricciones (TODO v8.0)
+### Restricciones (TODO v0.8)
 1. **RBAC:** Solo usuarios con rol `data-engineer` pueden ejecutar MCP tools
 2. **Audit logging:** Todas las acciones vía MCP registradas en `audit_log` table
 3. **Rate limiting:** Max 10 docker-compose ops por minuto (prevent DoS)
@@ -241,7 +241,7 @@ if __name__ == '__main__':
    }
    ```
 
-## Próximos Pasos (v8.0)
+## Próximos Pasos (v0.8)
 
 - [ ] Implementar RBAC + audit logging en superset-mcp
 - [ ] Crear webhooks para alertas (Slack, PagerDuty)

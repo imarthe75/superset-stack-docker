@@ -1,5 +1,5 @@
 # AGENT.md — Fuente de Verdad del Agente de Desarrollo
-# Proyecto: Aura Intelligence Suite v7.5 (MDS)
+# Proyecto: Aura Intelligence Suite v0.7 (MDS)
 # Última actualización: 2026-04-14
 
 > **INSTRUCCIÓN PARA EL AGENTE:** Lee este archivo COMPLETO al inicio de cada sesión antes de generar código.
@@ -152,7 +152,7 @@ docker compose exec clickhouse-server clickhouse-client --query "SHOW TABLES FRO
 
 ---
 
-## 6. DIRECTIVAS DEL ECOSISTEMA AURA (v8.3+)
+## 6. DIRECTIVAS DEL ECOSISTEMA AURA (v0.8+)
 
 ### 6.1 Regla de Ingesta (Arquitectura de Tríada)
 - **Directiva:** Todo dato proveniente de bases externas **DEBE** pasar por la tríada: **Origen → Redpanda/Debezium → ClickHouse (Replica)**.

@@ -2,21 +2,21 @@
   <img src="assets/logo.png" width="250" alt="Aura Intelligence Logo">
 </p>
 
-# 🌌 Aura Intelligence Suite (v8.4) — Ecosistema Total de Datos
+# 🌌 Aura Intelligence Suite (v0.8) — Ecosistema Total de Datos
 
 **Aura Intelligence Suite** es una Plataforma de Datos Moderna (Modern Data Stack) de nivel empresarial, diseñada bajo estándares de alta disponibilidad, gobernanza y calidad de datos. Integra el ciclo completo de vida del dato: Ingesta (CDC), Transformación (dbt), Calidad (Great Expectations), Semántica (Cube.js), BI/IA (Superset + GenAI) y Gobernanza (OpenMetadata).
 
 > [!IMPORTANT]
-> **Requisitos de Sistema (Arquitectura v8.2):**
+> **Requisitos de Sistema (Arquitectura v0.8):**
 > - **RAM**: 24 GB mínimo (se recomiendan 32 GB para el stack completo con Gobernanza).
 > - **CPU**: 8 vCPUs.
 > - **Almacenamiento**: 150 GB NVMe (SSD recomendado para ClickHouse).
 
 ---
 
-## 🚀 PARTE 1: El Salto a la Plataforma Global (v8.2)
+## 🚀 PARTE 1: El Salto a la Plataforma Global (v0.8)
 
-A diferencia de un stack de BI tradicional, la v8.2 de Aura implementa las tres capas críticas que utilizan empresas como Uber o Netflix para garantizar la confianza en los datos:
+A diferencia de un stack de BI tradicional, la v0.8 de Aura implementa las tres capas críticas que utilizan empresas como Uber o Netflix para garantizar la confianza en los datos:
 
 ### 1. Transformación Estructurada (dbt)
 No solo movemos datos; los refinamos. Usamos **dbt (data build tool)** para transformar los datos crudos (Bronze) en modelos limpios (Silver) y KPIs listos para negocio (Gold) directamente dentro de ClickHouse.
@@ -98,7 +98,7 @@ graph TD
 # 1. Configurar entorno
 cp .env.example .env && nano .env
 
-# 2. Levantar el stack completo (v8.2)
+# 2. Levantar el stack completo (v0.8)
 # Incluye base de datos analítica, transformadora y gobernanza
 docker compose up -d
 ```
@@ -131,4 +131,4 @@ docker compose up -d
 - **AIS**: (Aura Intelligence Security) — Los agentes de IA solo acceden a métricas pre-validadas por Cube.js.
 
 ---
-*Aura Intelligence Suite v8.4 — Diseñado para la Confianza en los Datos.*
+*Aura Intelligence Suite v0.8 — Diseñado para la Confianza en los Datos.*

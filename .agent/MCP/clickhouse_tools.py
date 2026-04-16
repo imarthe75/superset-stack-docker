@@ -2,7 +2,7 @@
 """
 clickhouse_tools.py — Herramientas MCP para consultas a ClickHouse
 ===================================================================
-Proyecto: Aura Intelligence Suite v8.0
+Proyecto: Aura Intelligence Suite v0.8
 Ubicación: .agent/MCP/clickhouse_tools.py
 
 Permite al agente consultar ClickHouse de forma segura para:

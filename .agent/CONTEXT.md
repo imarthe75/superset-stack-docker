@@ -1,8 +1,8 @@
-# CONTEXT.md (v8.0) — Aura Intelligence: Campos Críticos, Validaciones y Knowledge Base
+# CONTEXT.md (v0.8) — Aura Intelligence: Campos Críticos, Validaciones y Knowledge Base
 
 ## Visión: Modern Data Stack Operacionalizado
 
-**Aura Intelligence Suite** v8.0 integra:
+**Aura Intelligence Suite** v0.8 integra:
 - **Inyestion en tiempo real** (CDC via PeerDB)
 - **Transformaciones codificadas** (dbt + ClickHouse)
 - **Capa semántica normalizada** (Cube.js)
@@ -95,7 +95,7 @@ Por cada tabla, validar:
 
 ## 3. INDEXACIÓN DE MEMORIA (ChromaDB + brain_index.py)
 
-**Estado actual (v8.0):**
+**Estado actual (v0.8):**
 
 | Fuente | Campos indexados | Tests | Golden Sets | Status |
 |--------|-----------------|-------|-------------|--------|

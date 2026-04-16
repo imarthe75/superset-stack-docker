@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-brain_index.py — Agente Residente Aura: Indexación de Memoria Interna (v8.0 LITE)
+brain_index.py — Agente Residente Aura: Indexación de Memoria Interna (v0.8 LITE)
 
 Versión simplificada sin dependencias pesadas (ChromaDB optional):
 - Indexación de archivos en JSON (local filesystem)

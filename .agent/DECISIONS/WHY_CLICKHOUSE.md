@@ -2,7 +2,7 @@
 
 ## Contexto
 
-Versión v7.5 implementó capa OLAP con ClickHouse. Esta decisión documenta el trade-off vs mantener todo en Postgres.
+Versión v0.7 implementó capa OLAP con ClickHouse. Esta decisión documenta el trade-off vs mantener todo en Postgres.
 
 ## Alternativas Consideradas
 
@@ -126,7 +126,7 @@ ORDER BY (customer_id, order_id, created_at);
 
 ## Métricas de Éxito
 
-| Métrica | Objetivo | Actual (v7.5) |
+| Métrica | Objetivo | Actual (v0.7) |
 |---------|----------|---------------|
 | Query latency (p95) | < 1s | 0.3s ✅ |
 | Cache hit rate | ≥ 95% | 97% ✅ |
@@ -150,7 +150,7 @@ Kafka → Kafka Connect + ClickHouse Sink → ClickHouse
 ---
 
 **Registro de cambios**:
-- 2026-04-15: Decisión inicial v8.0
+- 2026-04-15: Decisión inicial v0.8
 - 2026-03-20: Benchmarks validados (100M rows aggregation: 0.3s vs 45s Postgres)
 
 **Próxima revisión**: 2026-08-15

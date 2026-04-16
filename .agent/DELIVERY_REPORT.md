@@ -1,4 +1,4 @@
-# ✅ ENTREGA FINAL — AGENTE RESIDENTE AURA v8.0
+# ✅ ENTREGA FINAL — AGENTE RESIDENTE AURA v0.8
 
 **Fecha:** 15 de abril de 2026  
 **Status:** ✅ LISTO PARA PRUEBAS  
@@ -8,14 +8,14 @@
 
 ## 📋 RESUMEN EJECUTIVO
 
-Se ha implementado exitosamente el **Agente Residente Aura (v8.0)** — un sistema autorregulado que mantiene la salud operacional del Modern Data Stack mediante:
+Se ha implementado exitosamente el **Agente Residente Aura (v0.8)** — un sistema autorregulado que mantiene la salud operacional del Modern Data Stack mediante:
 
 1. **Estructura Cognitiva** (RULES, MAP, CONTEXT, DECISIONS)
 2. **Memoria Dinámica** (ChromaDB + RAG engine con brain_index.py)
 3. **Capacidad de Acción** (MCP Server con 7 herramientas de orchestración)
 4. **Validación Continua** (Golden Sets + Great Expectations)
 
-**Resultado:** Stack MDS v8.0 con agencia IA integrada, documentación completa y procedimientos automatizados listos para producción.
+**Resultado:** Stack MDS v0.8 con agencia IA integrada, documentación completa y procedimientos automatizados listos para producción.
 
 ---
 
@@ -46,7 +46,7 @@ Se ha implementado exitosamente el **Agente Residente Aura (v8.0)** — un siste
 - Métricas de calidad de datos (Completeness, Uniqueness, Timeliness, etc.)
 
 #### ✅ `.agent/STATE.md` (500 líneas)
-- Status actual: v8.0 ACTIVE ✅
+- Status actual: v0.8 ACTIVE ✅
 - Tabla de versiones: 18 componentes (Superset 7.5, ClickHouse 25.4, etc.)
 - Servicios operativos: 15 en aura_internal, 1 en aura_public (nginx)
 - Deudas técnicas: 7 items prioriza prioritarios (Vault, Keycloak DB, TLS)
@@ -113,8 +113,8 @@ requests>=2.31.0             # HTTP
 - Recovery procedures (3 opciones: restart, full-sync, rollback)
 
 #### ✅ `.agent/DECISIONS/ARCHITECTURE_EVOLUTION.md` (300 líneas)
-- Timeline: v7.0 (monolith) → v7.5 (MDS) → v8.0 (Agente)
-- Cambios en v8.0: ChromaDB, brain_index.py, MCP, STATE.md
+- Timeline: v0.7 (monolith) → v0.7 (MDS) → v0.8 (Agente)
+- Cambios en v0.8: ChromaDB, brain_index.py, MCP, STATE.md
 - Roadmap 2026:
   * Q2: Kafka real-time (< 1s lag)
   * Q2: ClickHouse sharding (10x capacity)
@@ -151,7 +151,7 @@ requests>=2.31.0             # HTTP
 7. **`query_prometheus_metrics`** — PromQL execution
    - Parámetro: query (PromQL), time_range
 
-**Seguridad (implementar v8.1):**
+**Seguridad (implementar v0.8):**
 - RBAC por role (data-engineer, analyst, admin)
 - Audit logging → `aura_silver.audit_log`
 - Rate limiting: 10 ops/min
@@ -235,7 +235,7 @@ Búsqueda semántica anterior
 - [x] Crear `.agent/RULES.md` con innegociables
 - [x] Crear `.agent/MAP.md` con arquitectura detallada
 - [x] Crear `.agent/CONTEXT.md` con campos críticos
-- [x] Crear `.agent/STATE.md` con status v8.0
+- [x] Crear `.agent/STATE.md` con status v0.8
 - [x] Implementar `.agent/brain_index.py` (400 líneas, fully functional)
 - [x] Crear `.agent/requirements.txt`
 - [x] Crear documentación MCP en `.agent/MCP/CONFIG.md`
@@ -253,7 +253,7 @@ Búsqueda semántica anterior
 - [x] Implementar DSPy prompts en `.agent/dspy_config/`
 
 **DevOps:**
-- [x] Implementar RBAC + audit logging en MCP (v8.1)
+- [x] Implementar RBAC + audit logging en MCP (v0.8)
 - [x] Crear dashboard Grafana para MCP audit trail
 - [x] Migrar `.env` → Vault Agent Injector (producción)
 
@@ -272,7 +272,7 @@ Búsqueda semántica anterior
 
 ## 📊 IMPACTO ESPERADO
 
-| Métrica | Antes (v7.5) | Después (v8.0) | Mejora |
+| Métrica | Antes (v0.7) | Después (v0.8) | Mejora |
 |---------|-------------|----------------|--------|
 | Query latency (p95) | 0.3s | < 0.3s | ✅ |
 | Cache hit rate | 97% | ≥ 95% | → |
@@ -287,7 +287,7 @@ Búsqueda semántica anterior
 ## 🔐 CAMBIOS PRINCIPALES EN ARQUITECTURA
 
 ```
-v7.5 (MDS Basico)
+v0.7 (MDS Basico)
 ├─ OLAP: ClickHouse ✅
 ├─ CDC: PeerDB ✅
 ├─ Semantic: Cube.js ✅
@@ -295,7 +295,7 @@ v7.5 (MDS Basico)
 ├─ AI: Vanna, Flowise ✅
 └─ Documentación: CONTEXT.md solamente
 
-v8.0 (MDS Cognitivo)
+v0.8 (MDS Cognitivo)
 ├─ OLAP: ClickHouse ✅
 ├─ CDC: PeerDB ✅
 ├─ Semantic: Cube.js ✅
@@ -377,7 +377,7 @@ grep -r "TODO" .agent/*.md | wc -l  # ¿Todavía hay TOs?
 
 ✅ **ENTREGA COMPLETADA**
 
-**Agente Residente Aura v8.0** está listo para:
+**Agente Residente Aura v0.8** está listo para:
 1. ✅ Operación autonóma (MCP tools)
 2. ✅ Aprendizaje continuo (ChromaDB RAG)
 3. ✅ Gobernanza de datos (RULES + CONTEXT)

@@ -1,4 +1,4 @@
-# Dependencias del BRAIN (RAG interno del Agente Residente v8.0)
+# Dependencias del BRAIN (RAG interno del Agente Residente v0.8)
 # Instalar con: pip install -r .agent/BRAIN/requirements.txt
 
 # Motor vectorial

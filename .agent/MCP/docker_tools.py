@@ -2,7 +2,7 @@
 """
 docker_tools.py — Herramientas MCP para control de Docker
 ==========================================================
-Proyecto: Aura Intelligence Suite v8.0
+Proyecto: Aura Intelligence Suite v0.8
 Ubicación: .agent/MCP/docker_tools.py
 
 Implementa el protocolo MCP (Model Context Protocol) para que el agente

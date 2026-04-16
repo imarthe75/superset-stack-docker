@@ -1,7 +1,7 @@
-# ADR-002 — Migración a ClickHouse como motor OLAP (MDS v7.5 → v8.0)
+# ADR-002 — Migración a ClickHouse como motor OLAP (MDS v0.7 → v0.8)
 # Fecha: 2026-04-14
 # Estado: ACEPTADO
-# Autor: Equipo Aura / Agente Residente v8.0
+# Autor: Equipo Aura / Agente Residente v0.8
 
 ## Contexto
 

@@ -1,13 +1,13 @@
-# 📈 EVOLUCIÓN ARQUITECTÓNICA: v7.5 → v8.0
+# 📈 EVOLUCIÓN ARQUITECTÓNICA: v0.7 → v0.8
 
 ## Timeline
 
-### v7.0 (2025-Q3): Monolith
+### v0.7 (2025-Q3): Monolith
 - Postgres only
 - Superset queries: 30-60s
 - No real-time
 
-### v7.5 (2025-Q4 - ACTUAL): Modern Data Stack
+### v0.7 (2025-Q4 - ACTUAL): Modern Data Stack
 - ✅ ClickHouse added
 - ✅ redpanda CDC for ingesta
 - ✅ dbt Silver/Gold layers
@@ -15,14 +15,14 @@
 - ✅ Valkey cache
 - Query latency: 0.3s median
 
-### v8.0 (2026-Q1 - CURRENT): AI-Augmented BI
+### v0.8 (2026-Q1 - CURRENT): AI-Augmented BI
 - ✅ Vanna AI (Text-to-SQL)
 - ✅ Flowise (LLM workflows)
 - ✅ ChromaDB internal knowledge base
 - ✅ MCP server for agent autonomy
 - ✅ Golden sets para model training
 
-## Cambios en v8.0
+## Cambios en v0.8
 
 ### Adiciones
 1. **ChromaDB** para indexar configuraciones

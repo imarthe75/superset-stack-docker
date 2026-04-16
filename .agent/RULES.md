@@ -1,5 +1,5 @@
 # RULES.md — Memoria Estática: Reglas Innegociables
-# Proyecto: Aura Intelligence Suite v8.0 (Agente Residente)
+# Proyecto: Aura Intelligence Suite v0.8 (Agente Residente)
 # Última actualización: 2026-04-14
 # ⚠️ ESTE ARCHIVO ES INMUTABLE. Solo modificar con aprobación explícita del equipo.
 

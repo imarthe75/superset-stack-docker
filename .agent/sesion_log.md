@@ -1,4 +1,4 @@
-# 📝 Log de Sesión: Re-Arquitectura Aura Data Pipeline (v8.4)
+# 📝 Log de Sesión: Re-Arquitectura Aura Data Pipeline (v0.8-stable)
 **Fecha:** 2026-04-16  
 **Agente:** Antigravity (Anticipatory Resident Agent)  
 **Estado:** ✅ Migración técnica completada y sincronizada en Git.
@@ -29,7 +29,7 @@ Se ha ejecutado una de las decisiones de arquitectura más críticas para el **P
 - **MAP.md**: Actualizada la topología de red y flujo de datos lineal.
 - **AGENT.md**: Nuevas reglas de observabilidad para Redpanda y Debezium.
 - **RULES.md**: Actualizadas reglas innegociables (MDS-05, SEC-07, etc.).
-- **STATE.md**: Sincronizado el estado v8.4 y log de sesiones.
+- **STATE.md**: Sincronizado el estado v0.8 y log de sesiones.
 
 ---
 

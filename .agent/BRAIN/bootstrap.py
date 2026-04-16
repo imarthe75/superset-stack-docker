@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-bootstrap.py — Script de Arranque del Agente Residente v8.0
+bootstrap.py — Script de Arranque del Agente Residente v0.8
 =============================================================
 Proyecto: Aura Intelligence Suite (superset-stack-docker)
 Ubicación: .agent/BRAIN/bootstrap.py
@@ -218,7 +218,7 @@ def index_repository(rebuild: bool = False) -> chromadb.Collection:
 
     collection = client.get_or_create_collection(
         name=COLLECTION_NAME,
-        metadata={"description": "Aura codebase semantic index v8.0"},
+        metadata={"description": "Aura codebase semantic index v0.8"},
     )
 
     embedding_fn = get_embedding_function()
@@ -389,7 +389,7 @@ if __name__ == "__main__":
             print(r["content"][:500])
             print()
     else:
-        print("🚀 Iniciando indexación del repositorio Aura v8.0...")
+        print("🚀 Iniciando indexación del repositorio Aura v0.8...")
         start = time.time()
         index_repository(rebuild=args.rebuild)
         elapsed = time.time() - start

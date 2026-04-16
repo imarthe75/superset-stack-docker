@@ -1,4 +1,4 @@
-# 🚀 ENTREGABLES v8.0 — AGENTE RESIDENTE AURA
+# 🚀 ENTREGABLES v0.8 — AGENTE RESIDENTE AURA
 
 **Fecha:** 2026-04-16  
 **Versión:** 8.4 (Agente Residente + Redpanda Streaming)  
@@ -21,7 +21,7 @@
 - Arquitectura completa: 8 capas (OLTP → OLAP → BI → AI)
 - Diagrama Medallion Model (Bronze/Silver/Gold)
 - Flujo Postgres WAL → Debezium → Redpanda → ClickHouse → Cube → Superset
-- **Estado:** ✅ Actualizado (v8.4)
+- **Estado:** ✅ Actualizado (v0.8)
 
 #### `.agent/CONTEXT.md` (ACTUALIZADO)
 - Campos críticos de extracción por dominio
@@ -33,9 +33,9 @@
 - **Estado:** Completo
 
 #### `.agent/STATE.md` (ACTUALIZADO)
-- Status v8.4: **✅ ACTIVE** (Redpanda + Debezium operativos en código)
+- Status v0.8: **✅ ACTIVE** (Redpanda + Debezium operativos en código)
 - Tabla de versiones: Superset 7.5, ClickHouse 25.4, Redpanda latest, Debezium latest.
-- Log de sesiones: v8.0 (2026-04-15) + v8.4 (2026-04-16: Re-Arquitectura)
+- Log de sesiones: v0.8 (2026-04-15) + v0.8 (2026-04-16: Re-Arquitectura)
 - **Estado:** Sincronizado en Git
 
 ---
@@ -90,7 +90,7 @@ python-dotenv==1.0.0
 - **Estado:** ✅
 
 #### `.agent/DECISIONS/ARCHITECTURE_EVOLUTION.md`
-- Timeline: v7.0 → v7.5 → v8.0
+- Timeline: v0.7 → v0.7 → v0.8
 - Roadmap 2026: Kafka (Q2), Sharding (Q2), Vertex AI (Q3)
 - **Estado:** ✅
 
@@ -108,7 +108,7 @@ python-dotenv==1.0.0
 6. `validate_cube_cache` — Cache hit rate
 7. `query_prometheus_metrics` — PromQL queries
 
-**Seguridad (TODO v8.0):**
+**Seguridad (TODO v0.8):**
 - RBAC por role (data-engineer, analyst, admin)
 - Audit logging en tabla `aura_silver.audit_log`
 - Rate limiting: 10 ops/min
@@ -134,7 +134,7 @@ Agente: [Ejecutando: validate_clickhouse_health]
 - [x] Implementar brain_index.py con ChromaDB
 - [x] Documentar decisiones arquitectónicas
 - [x] Crear MCP CONFIG.md
-- [x] Actualizar STATE.md con v8.0 status
+- [x] Actualizar STATE.md con v0.8 status
 - [ ] **PRÓXIMO: Instalar dependencias** `pip install -r .agent/requirements.txt`
 - [ ] **PRÓXIMO: Ejecutar indexación** `python .agent/brain_index.py --index`
 - [ ] **PRÓXIMO: Validar ChromaDB** `python .agent/brain_index.py --stats`
@@ -147,7 +147,7 @@ Agente: [Ejecutando: validate_clickhouse_health]
 - [ ] Integrar ChromaDB queries en Vanna AI y Flowise
 - [ ] Implementar RBAC + audit logging en MCP
 
-### Próximas semanas (Roadmap v8.5)
+### Próximas semanas (Roadmap v0.8)
 
 - [x] Kafka/Redpanda streams para sub-second latency (VS PeerDB 30s)
 - [ ] Auto-sharding ClickHouse (si data > 500GB)
@@ -158,7 +158,7 @@ Agente: [Ejecutando: validate_clickhouse_health]
 
 ## 📊 INDICADORES CLAVE
 
-| KPI | Objetivo | Actual (v7.5) | v8.0 Target |
+| KPI | Objetivo | Actual (v0.7) | v0.8 Target |
 |-----|----------|---------------|-------------|
 | Query latency (p95) | < 1s | 0.3s | ✅ |
 | Cache hit rate | ≥ 95% | 97% | ✅ |
@@ -175,7 +175,7 @@ Agente: [Ejecutando: validate_clickhouse_health]
 | Riesgo | Severidad | Mitigación |
 |--------|-----------|-----------|
 | ChromaDB embedding model obsoleto | Media | Auto-update quarterly |
-| MCP server DoS (rate limiting) | Media | Rate limiter implementado v8.1 |
+| MCP server DoS (rate limiting) | Media | Rate limiter implementado v0.8 |
 | Redpanda CPU/Memory pressure | Media | Monitorización nativa Admin API (9644) |
 | ClickHouse storage growth > WT | Media | Sharding + retention policies |
 
@@ -220,7 +220,7 @@ curl http://localhost:8010/health
 ├── RULES.md                      # ✅ Innegociables técnicos
 ├── MAP.md                        # ✅ Diagrama arquitectónico
 ├── CONTEXT.md                    # ✅ Campos críticos + validaciones
-├── STATE.md                      # ✅ Estado actual v8.0
+├── STATE.md                      # ✅ Estado actual v0.8
 ├── brain_index.py                # ✅ Indexador ChromaDB
 ├── requirements.txt              # ✅ Dependencias
 ├── DECISIONS/
@@ -251,7 +251,7 @@ curl http://localhost:8010/health
 
 ---
 
-**Preparado por:** GitHub Copilot (v8.0)  
+**Preparado por:** GitHub Copilot (v0.8)  
 **Revisado por:** Data Engineering Team  
 **Próxima auditoría:** 2026-05-15  
 

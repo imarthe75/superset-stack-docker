@@ -2,7 +2,7 @@
 """
 keycloak_tools.py — Herramientas MCP para gestión de Keycloak
 ==============================================================
-Proyecto: Aura Intelligence Suite v8.0
+Proyecto: Aura Intelligence Suite v0.8
 Ubicación: .agent/MCP/keycloak_tools.py
 
 Permite al agente verificar y gestionar el Identity Provider Keycloak:
