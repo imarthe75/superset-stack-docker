@@ -33,6 +33,23 @@ def get_token():
     _access_token = resp.json()["access_token"]
     return _access_token
 
+# Define RBAC Roles
+ROLE_PERMISSIONS = {
+    "admin": ["list_dashboards", "get_dashboard_info", "list_datasets"],
+    "analyst": ["list_dashboards", "get_dashboard_info"]
+}
+
+def log_audit(user: str, tool_name: str, arguments: dict, status: str):
+    """Log tool usages to ClickHouse aura_silver.mcp_audit_log"""
+    ch_url = os.getenv("CLICKHOUSE_URL", "http://clickhouse-server:8123")
+    ch_user = os.getenv("CLICKHOUSE_USER", "aura")
+    ch_pass = os.getenv("CLICKHOUSE_PASSWORD", "aura_secure_pass")
+    try:
+        data = f"INSERT INTO aura_silver.mcp_audit_log (user_name, tool_name, arguments, status) VALUES ('{user}', '{tool_name}', '{json.dumps(arguments)}', '{status}')"
+        requests.post(ch_url, auth=(ch_user, ch_pass), data=data, timeout=3)
+    except Exception as e:
+        print(f"Audit log failed: {e}")
+
 # Define MCP server
 server = Server("Superset MCP")
 
@@ -64,6 +81,12 @@ async def list_tools():
 
 @server.call_tool()
 async def call_tool(name: str, arguments: dict):
+    user_role = os.getenv("USER_ROLE", "admin")  # Should be extracted from OIDC token
+    if name not in ROLE_PERMISSIONS.get(user_role, []):
+        log_audit(SUPERSET_USERNAME, name, arguments, "DENIED - RBAC")
+        return [{"type": "text", "text": f"RBAC Denied: Role '{user_role}' cannot execute {name}"}]
+        
+    log_audit(SUPERSET_USERNAME, name, arguments, "GRANTED")
     token = get_token()
     headers = {"Authorization": f"Bearer {token}"}
     

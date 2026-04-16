@@ -1,1 +1,12 @@
-groups: []
+groups:
+  - name: PeerDB_Alerts
+    rules:
+      - alert: HighReplicationLag
+        expr: pg_replication_lag_seconds > 30
+        for: 1m
+        labels:
+          severity: critical
+          service: peerdb
+        annotations:
+          summary: "High Replication Lag on PeerDB"
+          description: "PeerDB replication lag has exceeded 30 seconds for more than 1 minute. Current value: {{ $value }}s"

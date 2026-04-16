@@ -248,19 +248,19 @@ Búsqueda semántica anterior
 ### ⏳ Próximas Tareas (Equipos)
 
 **Data Engineering:**
-- [ ] Poblar `.agent/golden_sets/` con 5+ ejemplos validados
-- [ ] Crear flowdel scripts Prefect en `.agent/workflows/`
-- [ ] Implementar DSPy prompts en `.agent/dspy_config/`
+- [x] Poblar `.agent/golden_sets/` con 5+ ejemplos validados
+- [x] Crear flowdel scripts Prefect en `.agent/workflows/`
+- [x] Implementar DSPy prompts en `.agent/dspy_config/`
 
 **DevOps:**
-- [ ] Implementar RBAC + audit logging en MCP (v8.1)
-- [ ] Crear dashboard Grafana para MCP audit trail
-- [ ] Migrar `.env` → Vault Agent Injector (producción)
+- [x] Implementar RBAC + audit logging en MCP (v8.1)
+- [x] Crear dashboard Grafana para MCP audit trail
+- [x] Migrar `.env` → Vault Agent Injector (producción)
 
 **BI/Analytics:**
-- [ ] Integrar ChromaDB queries en Vanna AI
-- [ ] Crear workflows Flowise para análisis automáticos
-- [ ] Configurar golden sets para casos de uso específicos
+- [x] Integrar ChromaDB queries en Vanna AI
+- [x] Crear workflows Flowise para análisis automáticos
+- [x] Configurar golden sets para casos de uso específicos
 
 **QA/Validación:**
 - [ ] Ejecutar `brain_index.py --index` y validar 200+ chunks

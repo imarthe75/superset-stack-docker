@@ -1,0 +1,12 @@
+[
+  {
+    "table": "dim_customer",
+    "query": "Dame el top 5 de clientes con mayor lifetime value",
+    "expected_sql": "SELECT customer_id, name, lifetime_value FROM aura_gold.dim_customer WHERE is_active = true AND is_deleted = false ORDER BY lifetime_value DESC LIMIT 5"
+  },
+  {
+    "table": "dim_customer",
+    "query": "¿Cuántos clientes premium tenemos en MX?",
+    "expected_sql": "SELECT count(*) as total_premium FROM aura_gold.dim_customer WHERE country = 'MX' AND segment = 'premium' AND is_active = true AND is_deleted = false"
+  }
+]

@@ -48,3 +48,17 @@ ghostdriver.log
 
 # Docker
 docker-compose.override.yml
+
+
+# === Agent Resident Memory (Volatile) ===
+.agent/brain/         # VectorDB local (se regenera con bootstrap.py)
+.agent/index/         # Índices temporales
+.agent/*.log          # Logs de sesión del agente
+.agent/tmp/           # Archivos temporales de procesamiento
+.mcp/local-config.json # Rutas locales del sistema
+.env                  # Secretos y llaves API
+# dbt
+dbt_aura/target/
+dbt_aura/logs/
+dbt_aura/dbt_packages/
+dbt_aura/.user.yml

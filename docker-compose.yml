@@ -19,14 +19,14 @@ services:
   # CAPA 0: BASE DE DATOS TRANSACCIONAL (OLTP)
   # ===========================================================================
   postgres:
-    image: postgres:18.3
+    image: postgres:16
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-superset}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-superset}
       POSTGRES_DB: ${POSTGRES_DB:-superset}
       TZ: America/Mexico_City
       # Habilitar replicación lógica (WAL) para PeerDB CDC
-      POSTGRES_INITDB_ARGS: "--wal-level=logical"
+      # POSTGRES_INITDB_ARGS: "--wal-level=logical" (Invalido en Postges 16 initdb)
     command: >
       postgres
       -c wal_level=logical
@@ -52,13 +52,12 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
           memory: 2G
         reservations:
           memory: 512M
 
   postgres-exporter:
-    image: quay.io/prometheuscommunity/postgres-exporter
+    image: prometheuscommunity/postgres-exporter
     environment:
       DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-superset}:${POSTGRES_PASSWORD:-superset}@postgres:5432/${POSTGRES_DB:-superset}?sslmode=disable
       TZ: America/Mexico_City
@@ -77,7 +76,7 @@ services:
   # CAPA 1: MOTOR OLAP (ClickHouse)
   # ===========================================================================
   clickhouse-server:
-    image: clickhouse/clickhouse-server:25.4
+    image: clickhouse/clickhouse-server:latest
     environment:
       CLICKHOUSE_USER: ${CLICKHOUSE_USER:-aura}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-aura_secure_pass}
@@ -107,30 +106,63 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4'
           memory: 6G
         reservations:
           memory: 2G
 
   # ===========================================================================
-  # CAPA 2: CDC — Change Data Capture (PeerDB)
+  # CAPA 2: STREAMING Y CDC — Change Data Capture (Redpanda + Debezium)
   # ===========================================================================
-  peerdb:
-    image: ghcr.io/peerdb-io/peerdb:stable
-    environment:
-      PEERDB_CATALOG_USER: ${POSTGRES_USER:-superset}
-      PEERDB_CATALOG_PASSWORD: ${POSTGRES_PASSWORD:-superset}
-      PEERDB_CATALOG_HOST: postgres
-      PEERDB_CATALOG_PORT: 5432
-      PEERDB_CATALOG_DB: peerdb_catalog
-      PEERDB_LOG_LEVEL: INFO
-      TZ: America/Mexico_City
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --smp 1
+      - --memory 1G
+      - --overprovisioned
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://redpanda:19092
+      - --pandaproxy-addr 0.0.0.0:8082
+      - --advertise-pandaproxy-addr redpanda:8082
+      - --rpc-addr 0.0.0.0:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --admin-addr 0.0.0.0:9644
     ports:
-      - "8085:8085"   # PeerDB UI — solo desarrollo
+      - "19092:19092"
+      - "9644:9644"
+    volumes:
+      - redpanda_data:/var/lib/redpanda/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9644/v1/status/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+
+  debezium-connector:
+    build:
+      context: .
+      dockerfile: docker/connect/Dockerfile
+    environment:
+      - BOOTSTRAP_SERVERS=redpanda:9092
+      - GROUP_ID=aura-connect-group
+      - CONFIG_STORAGE_TOPIC=aura_connect_configs
+      - OFFSET_STORAGE_TOPIC=aura_connect_offsets
+      - STATUS_STORAGE_TOPIC=aura_connect_statuses
+      - KEY_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - VALUE_CONVERTER=org.apache.kafka.connect.json.JsonConverter
+      - TZ=America/Mexico_City
     depends_on:
-      postgres:
+      redpanda:
         condition: service_healthy
-      clickhouse-server:
+      postgres:
         condition: service_healthy
     networks:
       - aura_internal
@@ -138,9 +170,55 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
           memory: 1G
-        reservations:
+
+  init-connectors:
+    image: curlimages/curl:latest
+    depends_on:
+      debezium-connector:
+        condition: service_healthy
+    networks:
+      - aura_internal
+    volumes:
+      - ./connectors:/connectors:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "
+      echo 'Esperando a Kafka Connect...' &&
+      while [ $(curl -s -o /dev/null -w '%{http_code}' http://debezium-connector:8083/) -ne 200 ]; do 
+        sleep 5; 
+      done;
+      echo 'Configurando Postgres Source Connector...' &&
+      curl -X POST -H 'Content-Type: application/json' --data @/connectors/postgres-source.json http://debezium-connector:8083/connectors &&
+      echo 'Configurando ClickHouse Sink Connector...' &&
+      curl -X POST -H 'Content-Type: application/json' --data @/connectors/clickhouse-sink.json http://debezium-connector:8083/connectors &&
+      echo 'Conectores configurados exitosamente.'
+      "
+    restart: no
+
+  # Deberás configurar el ClickHouse Sink Connector vía API o archivo de config
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    environment:
+      - KAFKA_BROKERS=redpanda:9092
+      - REDPANDA_ADMINAPI_ENABLED=true
+      - REDPANDA_ADMINAPI_URLS=http://redpanda:9644
+      - CONNECT_ENABLED=true
+      - CONNECT_CLUSTERS_0_NAME=aura-connect
+      - CONNECT_CLUSTERS_0_URL=http://debezium-connector:8083
+      - TZ=America/Mexico_City
+    depends_on:
+      redpanda:
+        condition: service_healthy
+      debezium-connector:
+        condition: service_healthy
+    networks:
+      - aura_internal
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
           memory: 256M
 
   # ===========================================================================
@@ -168,7 +246,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
           memory: 512M
         reservations:
           memory: 128M
@@ -197,7 +274,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
           memory: 512M
         reservations:
           memory: 128M
@@ -212,7 +288,7 @@ services:
       - "15432:15432"   # SQL API (PostgreSQL wire protocol)
     environment:
       # Cache y cola
-      - CUBEJS_CACHE_AND_QUEUE_DRIVER=redis
+      - CUBEJS_CACHE_AND_QUEUE_DRIVER=cubestore
       - CUBEJS_REDIS_URL=redis://valkey:6379/1   # DB 1 para Cube (DB 0 para Celery)
       # Seguridad
       - CUBEJS_API_SECRET=${SECRET_KEY}
@@ -255,7 +331,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
           memory: 2G
         reservations:
           memory: 512M
@@ -329,12 +404,13 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
           memory: 2G
         reservations:
           memory: 512M
 
   celery-worker:
+    build:
+      context: ./docker/superset
     image: custom-superset:v7.5
     command: celery --app=superset.tasks.celery_app:app worker --concurrency=4 --loglevel=INFO
     environment:
@@ -375,12 +451,13 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2'
           memory: 2G
         reservations:
           memory: 512M
 
   celery-beat:
+    build:
+      context: ./docker/superset
     image: custom-superset:v7.5
     command: celery --app=superset.tasks.celery_app:app beat --pidfile /tmp/celerybeat.pid --schedule /tmp/celerybeat-schedule
     environment:
@@ -414,7 +491,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
           memory: 512M
         reservations:
           memory: 128M
@@ -467,7 +543,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
           memory: 1G
         reservations:
           memory: 256M
@@ -493,6 +568,7 @@ services:
       - "8011:8011"   # Solo desarrollo
     volumes:
       - vanna_data:/app/vanna_db
+      - ./.agent/golden_sets:/app/golden_sets:ro
     depends_on:
       - cube
       - postgres
@@ -502,7 +578,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
           memory: 1G
         reservations:
           memory: 256M
@@ -536,7 +611,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
           memory: 1G
         reservations:
           memory: 256M
@@ -545,7 +619,7 @@ services:
   # CAPA 9: IDENTIDAD (Keycloak OIDC)
   # ===========================================================================
   keycloak:
-    image: quay.io/keycloak/keycloak:26.5.5
+    image: keycloak/keycloak:latest
     ports:
       - "8001:8080"   # Solo desarrollo
     environment:
@@ -563,7 +637,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1'
           memory: 1G
         reservations:
           memory: 256M
@@ -588,7 +661,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
           memory: 512M
         reservations:
           memory: 128M
@@ -616,31 +688,29 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
           memory: 512M
         reservations:
           memory: 128M
 
   cadvisor:
-    image: ghcr.io/google/cadvisor:0.56.2
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
     ports:
-      - "8080:8080"   # Solo desarrollo
+      - "8080:8080"
     environment:
       - TZ=America/Mexico_City
-      - DOCKER_API_VERSION=1.44
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-    command: --url_base_prefix=/cadvisor
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
     networks:
       - aura_internal
     restart: unless-stopped
     deploy:
       resources:
         limits:
-          cpus: '0.5'
           memory: 256M
 
   statsd-exporter:
@@ -692,7 +762,13 @@ services:
   openmetadata-server:
     image: openmetadata/server:1.2.4
     environment:
-      - DB_PARAMS=user=${POSTGRES_USER:-superset}&password=${POSTGRES_PASSWORD:-superset}&dbName=openmetadata_db&serverName=postgres&port=5432&driverClass=org.postgresql.Driver&dbScheme=postgresql
+      - DB_USER=${POSTGRES_USER:-superset}
+      - DB_USER_PASSWORD=${POSTGRES_PASSWORD:-superset}
+      - OM_DATABASE=openmetadata_db
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DRIVER_CLASS=org.postgresql.Driver
+      - DB_SCHEME=postgresql
       - SEARCH_TYPE=opensearch
       - SEARCH_HOST=opensearch
       - SEARCH_PORT=9200
@@ -703,8 +779,6 @@ services:
       - JWT_ISSUER=open-metadata.org
       - JWT_PUBLIC_KEY_URL=http://openmetadata-server:8585/api/v1/config/jwks
       - JWT_KEY_ID=openmetadata-jwt-key
-    volumes:
-      - ./docker/openmetadata/conf:/opt/openmetadata/conf
     depends_on:
       postgres:
         condition: service_healthy
@@ -724,7 +798,7 @@ services:
   nginx:
     image: nginx:1.28.2
     ports:
-      - "80:80"       # Expuesto al exterior
+      - "80:80"
     environment:
       - TZ=America/Mexico_City
     volumes:
@@ -748,7 +822,6 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
           memory: 128M
         reservations:
           memory: 64M

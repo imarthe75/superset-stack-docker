@@ -27,12 +27,20 @@ vn = MyVanna(config={
 
 # Database Connection
 def connect_db():
+    use_cube = os.getenv('CUBE_SQL_HOST') is not None
+    host = os.getenv('CUBE_SQL_HOST', os.getenv('POSTGRES_HOST', 'postgres'))
+    port = int(os.getenv('CUBE_SQL_PORT', 15432) if use_cube else 5432)
+    user = os.getenv('CUBE_SQL_USER', os.getenv('POSTGRES_USER', 'superset'))
+    password = os.getenv('CUBE_SQL_PASSWORD', os.getenv('POSTGRES_PASSWORD', 'superset'))
+    dbname = os.getenv('POSTGRES_DB', 'sales_data')
+    
+    print(f"Vanna connecting to Database: {host}:{port}")
     vn.connect_to_postgres(
-        host=os.getenv('POSTGRES_HOST', 'postgres'),
-        dbname=os.getenv('POSTGRES_DB', 'superset'),
-        user=os.getenv('POSTGRES_USER', 'superset'),
-        password=os.getenv('POSTGRES_PASSWORD', 'superset'),
-        port=5432
+        host=host,
+        dbname=dbname,
+        user=user,
+        password=password,
+        port=port
     )
 
 app = Flask(__name__)
@@ -40,7 +48,27 @@ CORS(app)
 
 @app.route('/', methods=['GET'])
 def health():
-    return jsonify({"status": "Aura Vanna AI Service is running", "endpoints": ["/ask", "/train/schema"]})
+    return jsonify({"status": "Aura Vanna AI Service is running", "endpoints": ["/ask", "/train/schema", "/train/golden_sets"]})
+
+@app.route('/train/golden_sets', methods=['POST'])
+def train_golden_sets():
+    import glob
+    import json
+    try:
+        connect_db()
+        # Find all JSON files in /app/golden_sets (mounted via Docker)
+        files = glob.glob("/app/golden_sets/*.json")
+        count = 0
+        for f in files:
+            with open(f, 'r') as file:
+                data = json.load(file)
+                for item in data:
+                    if 'query' in item and 'expected_sql' in item:
+                        vn.train(question=item['query'], sql=item['expected_sql'])
+                        count += 1
+        return jsonify({"status": f"Golden sets trained, {count} queries added."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/ask', methods=['POST'])
 def ask():

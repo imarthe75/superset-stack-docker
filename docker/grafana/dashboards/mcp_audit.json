@@ -1,0 +1,74 @@
+{
+  "title": "MCP Audit Trail",
+  "uid": "mcp-audit-trail",
+  "description": "Auditoría de operaciones del Model Context Protocol",
+  "refresh": "1m",
+  "panels": [
+    {
+      "type": "table",
+      "title": "Recent Tool Executions",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "ClickHouse"
+      },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT timestamp, user_name, tool_name, arguments, status FROM aura_silver.mcp_audit_log ORDER BY timestamp DESC LIMIT 50",
+          "refId": "A",
+          "format": "table"
+        }
+      ],
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Total Executions",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "ClickHouse"
+      },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT count(*) FROM aura_silver.mcp_audit_log",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 12
+      }
+    },
+    {
+      "type": "piechart",
+      "title": "Request Status",
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "ClickHouse"
+      },
+      "targets": [
+        {
+          "queryType": "sql",
+          "rawSql": "SELECT status, count(*) FROM aura_silver.mcp_audit_log GROUP BY status",
+          "refId": "A"
+        }
+      ],
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "timezone": "browser"
+}

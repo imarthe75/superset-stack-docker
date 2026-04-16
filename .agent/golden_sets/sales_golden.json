@@ -1,0 +1,12 @@
+[
+  {
+    "table": "fct_sales",
+    "query": "¿Cuál fue la venta más grande del mes?",
+    "expected_sql": "SELECT order_id, amount, currency FROM aura_gold.fct_sales WHERE toYYYYMM(created_at) = toYYYYMM(now()) AND is_deleted = false ORDER BY amount DESC LIMIT 1"
+  },
+  {
+    "table": "fct_sales",
+    "query": "¿Cuáles son las ventas totales por moneda este año?",
+    "expected_sql": "SELECT currency, sum(amount) as total_ventas FROM aura_gold.fct_sales WHERE toYear(created_at) = toYear(now()) AND is_deleted = false GROUP BY currency"
+  }
+]

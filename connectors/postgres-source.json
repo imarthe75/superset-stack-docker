@@ -1,0 +1,23 @@
+{
+  "name": "aura-postgres-source",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "tasks.max": "1",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "debezium_user",
+    "database.password": "debezium_replication_pass",
+    "database.dbname": "sales_data",
+    "topic.prefix": "aura",
+    "table.include.list": "public.users,public.orders,public.products,public.support_tickets,public.ml_prediccion_ventas",
+    "plugin.name": "pgoutput",
+    "publication.name": "debezium_publication",
+    "slot.name": "debezium_slot",
+    "publication.autocreate.mode": "disabled",
+    "slot.drop.on.stop": "false",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter.schemas.enable": "false"
+  }
+}

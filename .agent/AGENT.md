@@ -23,15 +23,15 @@
 | ClickHouse tablas    | `snake_case`        | `orders_raw`, `sales_daily_agg`  |
 | ClickHouse columnas  | `snake_case`        | `order_date`, `total_amount`     |
 | dbt modelos          | `snake_case` + prefijo de capa | `stg_orders`, `fct_sales`, `dim_products` |
-| Docker services      | `kebab-case`        | `clickhouse-server`, `peerdb`    |
-| Docker volumes       | `snake_case`        | `clickhouse_data`, `peerdb_data` |
-| Variables de entorno | `UPPER_SNAKE_CASE`  | `CLICKHOUSE_PASSWORD`, `PEERDB_API_KEY` |
+| Docker services      | `kebab-case`        | `clickhouse-server`, `redpanda`  |
+| Docker volumes       | `snake_case`        | `clickhouse_data`, `redpanda_data`|
+| Variables de entorno | `UPPER_SNAKE_CASE`  | `CLICKHOUSE_PASSWORD`, `REDPANDA_PORT`|
 | Vault secret paths   | `snake_case` por segmento | `secret/aura/clickhouse`, `secret/aura/postgres` |
 | Cube.js cubes        | `PascalCase`        | `OrdersFact`, `ProductsDim`      |
 
 ### 1.3 Capas dbt (Medallón)
 ```
-Bronze  → stg_*   (datos crudos replicados por PeerDB, mínima transformación)
+Bronze  → stg_*   (datos crudos replicados por Redpanda/Debezium, mínima transformación)
 Silver  → int_*   (joins, limpieza, tipos correctos)
 Gold    → fct_*, dim_*, mrt_*  (tablas analíticas para Superset/Cube)
 ```
@@ -47,10 +47,11 @@ Gold    → fct_*, dim_*, mrt_*  (tablas analíticas para Superset/Cube)
 
 ### 2.2 Jerarquía de Dependencias (`depends_on`)
 ```
-postgres (healthy) → peerdb
+postgres (healthy) → debezium-connector
 postgres (healthy) → superset, celery-worker, celery-beat, vanna-ai
-clickhouse (healthy) → peerdb, cube, dbt-runner
+clickhouse (healthy) → redpanda, cube, dbt-runner
 valkey (healthy) → superset, celery-worker, celery-beat, cube
+redpanda (healthy) → debezium-connector, clickhouse-sink
 superset (healthy) → celery-worker, celery-beat, superset-mcp
 prefect (started) → dbt-runner
 ```
@@ -68,7 +69,8 @@ prefect (started) → dbt-runner
 | superset          | 2         | 2G        | 512M        |
 | celery-worker     | 2         | 2G        | 512M        |
 | cube              | 1         | 2G        | 512M        |
-| peerdb            | 1         | 1G        | 256M        |
+| redpanda          | 1         | 1G        | 256M        |
+| debezium-connect  | 1         | 1G        | 256M        |
 | prefect           | 1         | 1G        | 256M        |
 | dbt-runner        | 1         | 512M      | 128M        |
 | valkey            | 0.5       | 512M      | 128M        |
@@ -76,7 +78,7 @@ prefect (started) → dbt-runner
 | grafana           | 0.5       | 512M      | 128M        |
 | prometheus        | 0.5       | 512M      | 128M        |
 | nginx             | 0.5       | 128M      | 64M         |
-| **TOTAL EST.**    | **~18**   | **~19G**  | **~5.2G**   |
+| **TOTAL EST.**    | **~20**   | **~21G**  | **~5.5G**   |
 
 > **NOTA:** En host con 16GB RAM y sin swap, activar solo los servicios necesarios. Usar perfil `--profile analytics` para ClickHouse+PeerDB+dbt.
 
@@ -146,3 +148,42 @@ docker compose exec postgres psql -U superset -c "SELECT * FROM pg_replication_s
 # Ver tablas en ClickHouse
 docker compose exec clickhouse-server clickhouse-client --query "SHOW TABLES FROM aura_raw"
 ```
+
+---
+
+## 6. DIRECTIVAS DEL ECOSISTEMA AURA (v8.3+)
+
+### 6.1 Regla de Ingesta (Arquitectura de Tríada)
+- **Directiva:** Todo dato proveniente de bases externas **DEBE** pasar por la tríada: **Origen → Redpanda/Debezium → ClickHouse (Replica)**.
+- **Prohibición:** Queda prohibido conectar Superset directamente a fuentes externas para evitar latencia y proteger la estabilidad de los sistemas origen.
+
+### 6.2 Regla de Semántica (Cube.js for BI)
+- **Directiva:** No se mapearán tablas "crudas" directamente en Superset. Es obligatorio definir la capa semántica en **Cube.js** para centralizar métricas y dimensiones.
+- **Optimización:** Se debe aprovechar la caché de **Valkey** (DB1) gestionada por Cube para pre-agregaciones (Rollups).
+
+### 6.3 Protocolo de Observabilidad (Redpanda & Debezium)
+- **Directiva:** Es obligatorio monitorear la salud de Redpanda vía Admin API (puerto 9644) y validar que los conectores de Debezium estén en estado 'RUNNING' antes de depurar inconsistencias en ClickHouse.
+- **Estándar de Conectividad:** Utilizar el puerto **9092** para comunicación interna del stack y **19092** para acceso externo si es necesario.
+
+### 6.4 Protocolo de Estabilidad (Redpanda Remediation)
+- **Directiva:** Si se detecta lag en la ingesta o inestabilidad, el agente debe realizar el diagnóstico en el siguiente orden:
+  1. Revisar los **límites de RAM** (máximo 1GB para Redpanda en dev/staging).
+  2. Verificar conectividad con PostgreSQL WAL.
+  3. Consultar métricas en el puerto 9644.
+- **Restricción:** No proponer cambios arquitectónicos antes de agotar los ajustes de parámetros operativos.
+
+---
+
+## 7. GUÍAS DE REFERENCIA (SOPORTE EXTERNO)
+
+Para tareas específicas de administración, modelado e integración, referirse a los siguientes manuales:
+
+1.  **Conexión de Fuentes Externas:** [CONEXION_EXTERNA_ADMIN.md](file:///docs/CONEXION_EXTERNA_ADMIN.md)
+2.  **Flujo de Trabajo del Analista:** [FLUJO_TRABAJO_USUARIO.md](file:///docs/FLUJO_TRABAJO_USUARIO.md)
+3.  **Operaciones y Mantenimiento:** [OPERACIONES_MANTENIMIENTO.md](file:///docs/OPERACIONES_MANTENIMIENTO.md)
+4.  **Modelado Semántico (Cube.js):** [MODELADO_SEMANTICO_CUBE.md](file:///docs/MODELADO_SEMANTICO_CUBE.md)
+5.  **Gestión de Identidades (Keycloak):** [GESTION_IDENTIDAD_KEYCLOAK.md](file:///docs/GESTION_IDENTIDAD_KEYCLOAK.md)
+6.  **Guía de Componentes (Ecosistema):** [GUIA_COMPONENTES_ECOSISTEMA.md](file:///docs/GUIA_COMPONENTES_ECOSISTEMA.md)
+7.  **Ejemplos de Uso IA:** [EJEMPLOS_USO_IA.md](file:///docs/EJEMPLOS_USO_IA.md)
+
+

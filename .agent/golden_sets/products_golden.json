@@ -1,0 +1,7 @@
+[
+  {
+    "table": "dim_product",
+    "query": "¿Qué productos están bajos en stock (menos de 10)?",
+    "expected_sql": "SELECT product_id, sku, name, stock_quantity FROM aura_gold.dim_product WHERE stock_quantity < 10 AND is_discontinued = false"
+  }
+]

@@ -22,7 +22,7 @@ CH_CMD=(clickhouse-client
 
 echo "🔷 [1/4] Creando bases de datos (Medallón: Bronze → Silver → Gold)..."
 
-docker compose exec clickhouse-server clickhouse-client \
+docker compose exec -T clickhouse-server clickhouse-client \
   --user "$CLICKHOUSE_USER" \
   --password "$CLICKHOUSE_PASSWORD" \
   --multiquery <<'SQL'
@@ -48,9 +48,7 @@ CREATE TABLE IF NOT EXISTS aura_raw.users (
     email         String,
     country       String,
     created_at    DateTime64(3, 'America/Mexico_City'),
-    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now(),
-    _peerdb_is_deleted  UInt8  DEFAULT 0,       -- PeerDB marca eliminaciones lógicas
-    _peerdb_synced_at   DateTime64(3, 'UTC') DEFAULT now()
+    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now()
 )
 ENGINE = ReplacingMergeTree(updated_at)
 PARTITION BY toYYYYMM(created_at)
@@ -62,10 +60,8 @@ CREATE TABLE IF NOT EXISTS aura_raw.products (
     id            UInt64,
     name          String,
     category      String,
-    price         Decimal(10, 2),
-    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now(),
-    _peerdb_is_deleted  UInt8  DEFAULT 0,
-    _peerdb_synced_at   DateTime64(3, 'UTC') DEFAULT now()
+    price         Decimal128(2),
+    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now()
 )
 ENGINE = ReplacingMergeTree(updated_at)
 ORDER BY (id)
@@ -76,12 +72,10 @@ CREATE TABLE IF NOT EXISTS aura_raw.orders (
     id            UInt64,
     user_id       UInt64,
     product_id    UInt64,
-    status        LowCardinality(String),  -- 'completed', 'cancelled', etc.
-    amount        Decimal(10, 2),
+    status        LowCardinality(String),
+    amount        Decimal128(2),
     order_date    Date,
-    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now(),
-    _peerdb_is_deleted  UInt8  DEFAULT 0,
-    _peerdb_synced_at   DateTime64(3, 'UTC') DEFAULT now()
+    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now()
 )
 ENGINE = ReplacingMergeTree(updated_at)
 PARTITION BY toYYYYMM(order_date)
@@ -95,9 +89,7 @@ CREATE TABLE IF NOT EXISTS aura_raw.support_tickets (
     subject       String,
     priority      LowCardinality(String),
     status        LowCardinality(String),
-    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now(),
-    _peerdb_is_deleted  UInt8  DEFAULT 0,
-    _peerdb_synced_at   DateTime64(3, 'UTC') DEFAULT now()
+    updated_at    DateTime64(3, 'America/Mexico_City') DEFAULT now()
 )
 ENGINE = ReplacingMergeTree(updated_at)
 ORDER BY (id)
@@ -107,11 +99,9 @@ SETTINGS index_granularity = 8192;
 CREATE TABLE IF NOT EXISTS aura_raw.ml_prediccion_ventas (
     id                  UInt64,
     fecha               Date,
-    prediccion_monto    Decimal(10, 2),
+    prediccion_monto    Decimal128(2),
     timestamp_ejecucion DateTime64(3, 'America/Mexico_City') DEFAULT now(),
-    updated_at          DateTime64(3, 'America/Mexico_City') DEFAULT now(),
-    _peerdb_is_deleted  UInt8  DEFAULT 0,
-    _peerdb_synced_at   DateTime64(3, 'UTC') DEFAULT now()
+    updated_at          DateTime64(3, 'America/Mexico_City') DEFAULT now()
 )
 ENGINE = ReplacingMergeTree(updated_at)
 PARTITION BY toYYYYMM(fecha)
@@ -188,10 +178,9 @@ echo "  Tablas raw: users, orders, products, support_tickets, ml_prediccion_vent
 echo "  Tablas gold: fct_sales, dim_products (placeholders para dbt)"
 echo "  Usuario readonly: superset_ro (acceso solo a aura_silver y aura_gold)"
 echo ""
-echo "🚀 Próximo paso: Configurar mirror PeerDB desde http://localhost:8085"
-echo "   Mirror name: pg_to_ch"
-echo "   Source: postgres (host=postgres, port=5432)"
-echo "   Destination: clickhouse-server (host=clickhouse-server, port=9000)"
-echo "   Destination DB: aura_raw"
-echo "   Publication: peerdb_publication"
-echo "   Slot: peerdb_slot"
+echo "🚀 Próximo paso: Verificar conectores en Redpanda Admin http://localhost:9644"
+echo "   Stream flow: Postgres -> Redpanda -> ClickHouse Sink -> ClickHouse"
+echo "   Database: aura_raw"
+echo "   Topic Prefix: aura"
+echo "   Publication: debezium_publication"
+echo "   Slot: debezium_slot"

@@ -36,17 +36,18 @@
 │  POSTGRESQL 18.3  :5432  [aura_internal]                            │
 │  DB: superset     → Metadatos de Superset (usuarios, dashboards)    │
 │  DB: sales_data   → Datos transaccionales OLTP                      │
-│  DB: peerdb_catalog → Metadatos de PeerDB                           │
-│  WAL Level: logical | Replication Slots: peerdb_slot                │
-│  Publication: peerdb_publication (users,orders,products,tickets,ml) │
-└──────────────────────┬──────────────────────────────────────────────┘
-                       │ WAL CDC (Logical Replication)
-                       ▼ [profile: analytics]
+│  WAL Level: logical | Publication: debezium_publication              │
+└─────────┬───────────────────────────────────────────────────────────┘
+          │                                 [ FUENTES EXTERNAS ]
+          │ WAL CDC (Logical Replication)   [ Oracle, SQL Server, etc]
+          │                                          │
+          ▼ [profile: analytics]                      ▼ [Ingesta Mirror]
 ┌─────────────────────────────────────────────────────────────────────┐
-│  PEERDB (stable)  :8085  [aura_internal]                            │
-│  Mirror: pg_to_ch  │  Source: postgres:5432  │  Dest: clickhouse    │
-│  Slot: peerdb_slot │  Publication: peerdb_publication               │
-│  Engine destino: ReplacingMergeTree(updated_at)                     │
+│  REDPANDA (Broker) :9092 :9644  [aura_internal]                     │
+│  - Eficiencia: C++ (Low RAM) | Zero Zookeeper                       │
+│  - Topics: pg.sales_data.*                                          │
+
+
 └──────────────────────┬──────────────────────────────────────────────┘
                        │ Native protocol :9000
                        ▼ [profile: analytics]
@@ -55,9 +56,9 @@
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────────────┐   │
 │  │  aura_raw   │  │ aura_silver  │  │       aura_gold          │   │
 │  │  (Bronze)   │  │  (Silver)    │  │        (Gold)            │   │
-│  │ ← PeerDB    │  │ ← dbt stg   │  │  ← dbt marts             │   │
-│  │  Raw CDC    │  │  + int_*    │  │  fct_sales, dim_products  │   │
-│  │ FINAL query │  │  views      │  │  (Cube + Superset)        │   │
+│  │ ← Redpanda  │  │ ← dbt stg    │  │  ← dbt marts             │   │
+│  │  Raw CDC    │  │  + int_*     │  │  fct_sales, dim_products  │   │
+│  │ FINAL query │  │  views       │  │  (Cube + Superset)        │   │
 │  └─────────────┘  └──────────────┘  └──────────────────────────┘   │
 └──────────────────────┬──────────────────────┬───────────────────────┘
                        │                      │
@@ -107,7 +108,7 @@
 │  Flows disponibles:                                                  │
 │    • ml_sales_pipeline.py → ML + Cube refresh                       │
 │    • dbt_run_flow.py      → dbt run + dbt test (TODO: crear)        │
-│    • peerdb_health.py     → Monitor latencia CDC (TODO: crear)      │
+│    • redpanda_health.py   → Monitor Admin API (TODO: crear)         │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -190,8 +191,11 @@ superset/                           ← RAÍZ DEL PROYECTO
 | Cube REST API       | 4000           | `/cubejs/`         | Playground + REST              |
 | Cube SQL API        | 15432          | Directo (interno)  | PostgreSQL wire protocol       |
 | ClickHouse HTTP     | 8123           | Directo (interno)  | Solo desde servicios internos  |
-| ClickHouse Native   | 9000           | Directo (interno)  | PeerDB + dbt                   |
-| PeerDB UI           | 8085           | `/peerdb/`         | CDC management                 |
+| Redpanda Backend     | 9092           | No expuesto        | Internal Broker                |
+| Redpanda External    | 19092          | No expuesto        | External Access (optional)     |
+| Redpanda Admin       | 9644           | No expuesto        | Admin API / Health             |
+| Redpanda Console     | 8080           | `/redpanda/`       | Kafka/Connect UI               |
+| Debezium Connect     | 8083           | No expuesto        | CDC Connector management       |
 | Prefect UI          | 4200           | `/prefect/`        | Workflow orchestration         |
 | Grafana             | 3000           | `/grafana/`        | Dashboards observabilidad      |
 | Prometheus          | 9090           | `/prometheus/`     | Métricas raw                   |
