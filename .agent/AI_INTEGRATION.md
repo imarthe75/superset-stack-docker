@@ -155,8 +155,8 @@ Agente Vanna:
 1. Busca en ChromaDB: "venta más grande + fecha"
 2. Encuentra golden set: "SELECT * FROM fct_sales WHERE DATE_TRUNC('month', created_at) = '2026-03' ORDER BY amount DESC LIMIT 1"
 3. Genera SQL similar (few-shot)
-4. Ejecuta vs Cube SQL API
-5. Retorna resultado + lineage
+4. Ejecuta vs Cube SQL API (conectado a ClickHouse aura_gold)
+5. Retorna resultado + lineage (Postgres -> Debezium -> Redpanda -> ClickHouse)
 ```
 
 ---
@@ -220,7 +220,7 @@ graph LR
     A[Webhook: POST /analyze_sales] 
     --> B["ChromaDB Search"]
     --> C["Enrich with Golden Sets"]
-    --> D["ClickHouse Query"]
+    --> D["ClickHouse Query (Real-time via Redpanda)"]
     --> E["LLM Generate Report"]
     --> F["Slack Notification"]
 ```

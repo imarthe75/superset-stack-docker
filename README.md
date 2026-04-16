@@ -2,7 +2,7 @@
   <img src="assets/logo.png" width="250" alt="Aura Intelligence Logo">
 </p>
 
-# 🌌 Aura Intelligence Suite (v8.2) — Ecosistema Total de Datos
+# 🌌 Aura Intelligence Suite (v8.4) — Ecosistema Total de Datos
 
 **Aura Intelligence Suite** es una Plataforma de Datos Moderna (Modern Data Stack) de nivel empresarial, diseñada bajo estándares de alta disponibilidad, gobernanza y calidad de datos. Integra el ciclo completo de vida del dato: Ingesta (CDC), Transformación (dbt), Calidad (Great Expectations), Semántica (Cube.js), BI/IA (Superset + GenAI) y Gobernanza (OpenMetadata).
 
@@ -29,7 +29,7 @@ La precisión es innegociable. Integramos **Great Expectations** en los pipeline
 - **Alertas**: Si un test falla, el pipeline se detiene y notifica vía webhook.
 
 ### 3. Gobernanza y Linaje (OpenMetadata)
-Centralizamos la inteligencia del ecosistema. **OpenMetadata** actúa como el catálogo unificado donde los usuarios pueden buscar términos de negocio, ver quién es el dueño de un dataset y entender el camino visual del dato (Postgres -> PeerDB -> ClickHouse -> dbt -> Cube -> Superset).
+Centralizamos la inteligencia del ecosistema. **OpenMetadata** actúa como el catálogo unificado donde los usuarios pueden buscar términos de negocio, ver quién es el dueño de un dataset y entender el camino visual del dato (Postgres -> Debezium -> Redpanda -> ClickHouse -> dbt -> Cube -> Superset).
 
 ---
 
@@ -39,7 +39,7 @@ Centralizamos la inteligencia del ecosistema. **OpenMetadata** actúa como el ca
 
 | Capa | Componente | Función |
 | :--- | :--- | :--- |
-| **Ingesta** | PeerDB (CDC) | Replicación real-time desde PostgreSQL mediante WAL lógico. |
+| **Ingesta** | Debezium + Redpanda | CDC real-time desde PostgreSQL hacia ClickHouse. |
 | **Almacenamiento** | ClickHouse | Motor OLAP de alto rendimiento (Capas Bronze, Silver y Gold). |
 | **Transformación** | dbt | Lógica de negocio estructurada en modelos SQL versionados. |
 | **Calidad** | Great Expectations | Tests de validación automática integrados en orquestación. |
@@ -72,7 +72,8 @@ graph TD
     end
 
     subgraph "Nave de Datos (Modern Data Stack)"
-        Postgres[(Postgres\nOLTP)] -->|PeerDB CDC| CH[(ClickHouse\nOLAP)]
+        Postgres[(Postgres\nOLTP)] -->|Debezium CDC| RP[(Redpanda\nBroker)]
+        RP -->|CH Sink| CH[(ClickHouse\nOLAP)]
         CH -->|dbt transformation| CH
         GE -->|Data Audit| CH
         CH --> Cube["Cube.js\n(Semantic Layer)"]
@@ -109,7 +110,8 @@ docker compose up -d
 | **Portal Aura (Superset)** | `http://TU_IP/` | Dashboards y Bi. |
 | **Catálogo (OpenMetadata)**| `http://TU_IP/catalog/` | Gobernanza y Linaje. |
 | **Orquestador (Prefect)**  | `http://TU_IP/prefect/` | Monitoreo de Pipelines. |
-| **SSO (Keycloak)**        | `http://TU_IP/auth/` | Gestión de Usuarios. |
+| **Identidad (Keycloak)**   | `http://TU_IP/auth/` | Gestión de Usuarios. |
+| **Streaming (Redpanda)**  | `http://TU_IP/redpanda/` | Consola de Gestión de Datos. |
 | **Laboratorio IA (Flowise)**| `http://TU_IP/flowise/`| Orquestación de Agentes. |
 
 ---
@@ -117,7 +119,7 @@ docker compose up -d
 ## 🛡️ PARTE 4: Gobernanza y Mejores Prácticas
 
 ### 4.1 Ciclo de Vida del Dato en Aura
-1. **Raw**: Ingesta sin cambios en la base de datos `aura_bronze`.
+1. **Raw**: Ingesta sin cambios en la base de datos `aura_raw` (vía Redpanda).
 2. **Transform**: dbt limpia y estandariza en `aura_silver`.
 3. **Audit**: Great Expectations valida que los datos no tengan errores críticos.
 4. **Publish**: dbt publica los agregados finales en `aura_gold`.
@@ -129,4 +131,4 @@ docker compose up -d
 - **AIS**: (Aura Intelligence Security) — Los agentes de IA solo acceden a métricas pre-validadas por Cube.js.
 
 ---
-*Aura Intelligence Suite v8.2 — Diseñado para la Confianza en los Datos.*
+*Aura Intelligence Suite v8.4 — Diseñado para la Confianza en los Datos.*

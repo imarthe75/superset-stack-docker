@@ -70,13 +70,13 @@ python .agent/brain_index.py --query "¿cómo se calcula lifetime_value?"
 
 ### 1. Revisar Estado del Stack
 ```bash
-# Check salud de ClickHouse
-curl "http://localhost:8123/?query=SELECT%201"
-# Esperado: 1
+# Ver estado de Redpanda (Broker Health)
+curl "http://localhost:9644/v1/status/ready"
+# Esperado: 200 OK
 
-# Ver estado de replicación PeerDB
-curl "http://localhost:8085/api/db/stats" | jq '.replication_lag'
-# Esperado: < 5 segundos
+# Ver estado de conectores Debezium
+curl "http://localhost:8083/connectors?expand=status" | jq '.'
+# Esperado: connectors in state "RUNNING"
 ```
 
 ### 2. Ejecutar Transformaciones
@@ -137,7 +137,8 @@ python .agent/brain_index.py --daemon
 │   └─ CONFIG.md (Model Context Protocol configuration)
 │      - docker_compose_up/down/restart
 │      - validate_clickhouse_health
-│      - validate_peerdb_sync
+│      - validate_redpanda_status
+│      - validate_debezium_connectors
 │      - query_prometheus_metrics
 │
 ├── 📁 golden_sets/
@@ -172,9 +173,9 @@ python .agent/brain_index.py --stats          # Ver estadísticas
 python .agent/brain_index.py --daemon         # Modo automático (6h)
 
 # === Docker Compose ===
-docker-compose up -d clickhouse-server peerdb  # Levantar OLAP stack
-docker-compose logs -f cube                     # Ver logs de Cube.js
-docker-compose ps                               # Ver status
+docker-compose up -d clickhouse-server redpanda debezium-connector  # Levantar streaming stack
+docker-compose logs -f redpanda                                     # Ver logs Redpanda
+docker-compose ps                                                  # Ver status
 
 # === ClickHouse ===
 docker exec clickhouse-server clickhouse-client \
@@ -201,8 +202,9 @@ docker exec dbt-runner dbt test               # Ejecutar tests
 |---------|-----|----------|
 | Query latency (p95) | < 1s | Grafana → Cube.js panel |
 | Cache hit rate | ≥ 95% | MCP → `validate_cube_cache` |
-| CDC lag | < 30s | MCP → `validate_peerdb_sync` |
+| CDC lag | < 5s | Redpanda Console → Consumer Group lag |
 | ClickHouse health | OK | MCP → `validate_clickhouse_health` |
+| Debezium Connectors | RUNNING | Admin UI → Redpanda Console |
 | dbt test success | 100% | Prefect → dbt test results |
 
 ---
@@ -227,11 +229,19 @@ docker exec clickhouse-server clickhouse-client \
   --query "OPTIMIZE TABLE aura_bronze.sales FINAL"
 ```
 
-### ❌ PeerDB lag > 5 mins
+### ❌ Redpanda Admin connection error
 ```bash
-# UIv: http://localhost:8085
-# Manual sync desde CLI:
-# (TODO: agregar script peerdb-cli)
+# Verificar puerto 9644 expuesto
+curl http://localhost:9644/v1/status/ready
+# Si falla: docker logs redpanda y verificar SMP/Memory settings
+```
+
+### ❌ Debezium connector failed
+```bash
+# Check status via API
+curl http://localhost:8083/connectors/aura-postgres-source/status | jq '.'
+# Remediar restart: 
+curl -X POST http://localhost:8083/connectors/aura-postgres-source/restart
 ```
 
 ### ❌ Valkey memory full
@@ -265,7 +275,7 @@ docker exec valkey valkey-cli FLUSHDB
 - [ ] ClickHouse performance tuning
 
 ### Roadmap 2026
-- Kafka streaming (Q2): CDC lag sub-segundo
+- Redpanda streaming (Q2): CDC lag sub-segundo (COMPLETADO ANTICIPADAMENTE)
 - Sharding ClickHouse (Q2): 10x capacity
 - Vertex AI predictions (Q3): AutoML
 

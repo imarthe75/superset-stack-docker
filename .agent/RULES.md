@@ -37,7 +37,7 @@
 | SEC-04 | `WTF_CSRF_ENABLED = False` solo permitido en entornos de desarrollo. En producción: `True`. |
 | SEC-05 | El usuario `superset_ro` de ClickHouse tiene acceso **SOLO** a `aura_silver.*` y `aura_gold.*`. Nunca a `aura_raw`. |
 | SEC-06 | Los tokens de Vault tienen TTL máximo de 24h. Rotación automática via Vault Agent. |
-| SEC-07 | El slot de replicación PeerDB (`peerdb_slot`) debe monitorearse. Un slot inactivo acumula WAL indefinidamente y puede llenar el disco. |
+| SEC-07 | El slot de replicación Debezium (`debezium_slot`) debe monitorearse. Un slot inactivo acumula WAL indefinidamente y puede llenar el disco. |
 
 ---
 
@@ -61,7 +61,7 @@
 | MDS-02 | **Vanna AI y Flowise** deben conectarse a **Cube SQL API** (`:15432`), no a ClickHouse directamente. Esto garantiza métricas validadas por la capa semántica. |
 | MDS-03 | Las tablas en `aura_raw` usan motor **`ReplacingMergeTree(updated_at)`**. Las consultas sobre estas tablas DEBEN incluir el modificador `FINAL`. |
 | MDS-04 | Las tablas en `aura_gold` usan motor **`MergeTree()`** (ya deduplicadas por dbt). |
-| MDS-05 | El slot de replicación PeerDB se llama `peerdb_slot`. La publicación Postgres se llama `peerdb_publication`. |
+| MDS-05 | El slot de replicación Debezium se llama `debezium_slot`. La publicación Postgres se llama `debezium_publication`. |
 | MDS-06 | Valkey DB asignación: `DB0`=Celery, `DB1`=Cube pre-aggs, `DB2`=Superset filter state, `DB3`=Superset data cache, `DB4`=Thumbnails, `DB5`=Rate limiting. |
 | MDS-07 | El agente nunca debe proponer añadir una nueva fuente de datos a Superset sin primero verificar si existe modelo dbt + cubo Cube para ella. |
 
@@ -75,7 +75,7 @@
 | OPS-02 | Todos los servicios pertenecen a `aura_internal`. Solo `nginx` pertenece también a `aura_public`. |
 | OPS-03 | Los recursos de ClickHouse no superarán `80%` de la RAM asignada al contenedor (`max_server_memory_usage_to_ram_ratio=0.8`). |
 | OPS-04 | Antes de proponer un `docker compose down -v`, el agente debe advertir explícitamente que se borrarán los volúmenes de datos. |
-| OPS-05 | Los servicios del stack analítico (ClickHouse, PeerDB, dbt) usan Docker Compose `--profile analytics`. |
+| OPS-05 | Los servicios del stack analítico (ClickHouse, Redpanda, Debezium, dbt) usan Docker Compose `--profile analytics`. |
 
 ---
 

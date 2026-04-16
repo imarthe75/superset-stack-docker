@@ -1,8 +1,8 @@
 # 🚀 ENTREGABLES v8.0 — AGENTE RESIDENTE AURA
 
-**Fecha:** 2026-04-15  
-**Versión:** 8.0 (Agente Residente + RAG Internal)  
-**Status:** ✅ LISTA PARA PRUEBAS  
+**Fecha:** 2026-04-16  
+**Versión:** 8.4 (Agente Residente + Redpanda Streaming)  
+**Status:** ✅ MIGRACIÓN COMPLETADA  
 
 ---
 
@@ -20,8 +20,8 @@
 #### `.agent/MAP.md`
 - Arquitectura completa: 8 capas (OLTP → OLAP → BI → AI)
 - Diagrama Medallion Model (Bronze/Silver/Gold)
-- Flujo Postgres WAL → PeerDB → ClickHouse → Cube → Superset
-- **Estado:** Documentado + diagrama Mermaid
+- Flujo Postgres WAL → Debezium → Redpanda → ClickHouse → Cube → Superset
+- **Estado:** ✅ Actualizado (v8.4)
 
 #### `.agent/CONTEXT.md` (ACTUALIZADO)
 - Campos críticos de extracción por dominio
@@ -33,10 +33,10 @@
 - **Estado:** Completo
 
 #### `.agent/STATE.md` (ACTUALIZADO)
-- Status v8.0: **✅ ACTIVE** (todos servicios operativos)
-- Tabla de versiones: Superset 7.5, ClickHouse 25.4, PeerDB stable, etc.
-- Log de sesiones: v7.5 (2026-04-14) + v8.0 (2026-04-15)
-- **Estado:** En vivo
+- Status v8.4: **✅ ACTIVE** (Redpanda + Debezium operativos en código)
+- Tabla de versiones: Superset 7.5, ClickHouse 25.4, Redpanda latest, Debezium latest.
+- Log de sesiones: v8.0 (2026-04-15) + v8.4 (2026-04-16: Re-Arquitectura)
+- **Estado:** Sincronizado en Git
 
 ---
 
@@ -104,7 +104,7 @@ python-dotenv==1.0.0
 2. `docker_compose_down` — Detener servicios
 3. `docker_compose_restart` — Reiniciar
 4. `validate_clickhouse_health` — Health check
-5. `validate_peerdb_sync` — Validar lag CDC
+5. `validate_redpanda_status` — Validar lag CDC (Redpanda Admin API)
 6. `validate_cube_cache` — Cache hit rate
 7. `query_prometheus_metrics` — PromQL queries
 
@@ -147,9 +147,9 @@ Agente: [Ejecutando: validate_clickhouse_health]
 - [ ] Integrar ChromaDB queries en Vanna AI y Flowise
 - [ ] Implementar RBAC + audit logging en MCP
 
-### Próximas semanas (Roadmap v8.1)
+### Próximas semanas (Roadmap v8.5)
 
-- [ ] Kafka streams para sub-second latency (vs PeerDB 30s)
+- [x] Kafka/Redpanda streams para sub-second latency (VS PeerDB 30s)
 - [ ] Auto-sharding ClickHouse (si data > 500GB)
 - [ ] Vertex AI for predictive analytics
 - [ ] dbt Cloud sync para lineage centralizado
@@ -176,7 +176,7 @@ Agente: [Ejecutando: validate_clickhouse_health]
 |--------|-----------|-----------|
 | ChromaDB embedding model obsoleto | Media | Auto-update quarterly |
 | MCP server DoS (rate limiting) | Media | Rate limiter implementado v8.1 |
-| PeerDB lag during peak load | Baja | Kafka fallback en roadmap |
+| Redpanda CPU/Memory pressure | Media | Monitorización nativa Admin API (9644) |
 | ClickHouse storage growth > WT | Media | Sharding + retention policies |
 
 ---
