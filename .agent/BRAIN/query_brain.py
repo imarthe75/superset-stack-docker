@@ -4,7 +4,7 @@ query_brain.py — Helper de consulta al BRAIN (RAG) del Agente Residente
 ========================================================================
 Uso desde línea de comandos o importado por otros módulos del agente.
 
-    python .agent/BRAIN/query_brain.py "como funciona la replicación peerdb"
+    python .agent/BRAIN/query_brain.py "como funciona la replicación redpanda"
     python .agent/BRAIN/query_brain.py "que motor usa clickhouse para orders"
 """
 from __future__ import annotations

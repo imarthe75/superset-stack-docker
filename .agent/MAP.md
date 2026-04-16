@@ -142,7 +142,7 @@ superset/                           ← RAÍZ DEL PROYECTO
 │
 ├── docker-compose.yml              ← Orquestación de servicios (v7.5 MDS)
 ├── nginx.conf                      ← Gateway único (172.28.0.0/16)
-├── prometheus.yml                  ← Scrape jobs: CH, PeerDB, Postgres, etc.
+├── prometheus.yml                  ← Scrape jobs: CH, Redpanda, Postgres, etc.
 ├── superset_config.py              ← Configuración Python de Superset
 ├── custom_security_manager.py      ← OIDC con Keycloak
 │

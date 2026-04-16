@@ -90,7 +90,8 @@ prefect (started) → dbt-runner
 ```
 secret/aura/postgres          → POSTGRES_USER, POSTGRES_PASSWORD
 secret/aura/clickhouse        → CLICKHOUSE_USER, CLICKHOUSE_PASSWORD
-secret/aura/peerdb            → PEERDB_PASSWORD (pg replication slot)
+secret/aura/redpanda          → REDPANDA_ADMIN_PASSWORD
+secret/aura/debezium          → DEBEZIUM_REPLICATION_PASSWORD
 secret/aura/superset          → SECRET_KEY, SUPERSET_ADMIN_PASSWORD
 secret/aura/cube              → CUBEJS_API_SECRET
 secret/aura/keycloak          → KEYCLOAK_ADMIN_PASSWORD, OIDC_CLIENT_SECRET
@@ -139,10 +140,10 @@ docker compose logs -f <service>
 # Ejecutar dbt manualmente
 docker compose run --rm dbt-runner dbt run --project-dir /dbt_aura --profiles-dir /dbt_aura
 
-# Forzar re-replicación PeerDB
-docker compose exec peerdb peerdb mirror status
+# Ver estado de los conectores Debezium
+curl http://localhost:8083/connectors?expand=status
 
-# Verificar replicación Postgres WAL
+# Verificar replicación Postgres WAL (Debezium slot)
 docker compose exec postgres psql -U superset -c "SELECT * FROM pg_replication_slots;"
 
 # Ver tablas en ClickHouse

@@ -9,7 +9,7 @@
 
 ### v7.5 (2025-Q4 - ACTUAL): Modern Data Stack
 - ✅ ClickHouse added
-- ✅ PeerDB CDC for ingesta
+- ✅ redpanda CDC for ingesta
 - ✅ dbt Silver/Gold layers
 - ✅ Cube.js semantic
 - ✅ Valkey cache
@@ -32,14 +32,14 @@
 
 ### No Changes (stable)
 - ClickHouse architecture (proven)
-- PeerDB CDC (working well)
+- redpanda CDC (working well)
 - Cube.js semantic layer (cache optimized)
 
 ## Roadmap 2026
 
 | Trimestre | Feature | Impact |
 |-----------|---------|--------|
-| Q2 | Kafka real-time streams | -98% latency (PeerDB 30s → Kafka <1s) |
+| Q2 | Kafka real-time streams | -98% latency (redpanda 30s → Kafka <1s) |
 | Q2 | Sharding ClickHouse | +10x capacity |
 | Q3 | Vertex AI integration | AutoML predictions |
 | Q3 | dbt Cloud sync | centralized lineage |

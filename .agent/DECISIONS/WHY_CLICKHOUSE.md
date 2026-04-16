@@ -51,7 +51,7 @@ Versión v7.5 implementó capa OLAP con ClickHouse. Esta decisión documenta el 
 ### Arquitectura Final
 
 ```
-Postgres (OLTP)  →  PeerDB CDC  →  ClickHouse (OLAP)
+Postgres (OLTP)  →  redpanda CDC  →  ClickHouse (OLAP)
                     ↓
               Real-time sink
                     ↓
@@ -118,8 +118,8 @@ ORDER BY (customer_id, order_id, created_at);
    # Option 1: Restart
    docker-compose restart clickhouse-server
    
-   # Option 2: Re-ingest raw from PeerDB
-   peerdb --action full-sync --source postgres --dest clickhouse
+   # Option 2: Re-ingest raw from redpanda
+   redpanda --action full-sync --source postgres --dest clickhouse
    
    # Option 3: Rollback dbt from previous state (Prefect UI)
    ```
