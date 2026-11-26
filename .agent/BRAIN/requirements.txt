@@ -15,4 +15,4 @@ sentence-transformers>=3.0.0      # Alternativa offline (no requiere API key)
 
 # Utilidades
 tiktoken>=0.7.0                   # Tokenizador OpenAI (para chunking preciso)
-python-dotenv>=1.0.0              # Cargar .env para OPENAI_API_KEY
+python-dotenv>=1.2.2              # Cargar .env para OPENAI_API_KEY
